@@ -429,6 +429,7 @@
     let results = {};
     let palpites = {};
     let loggedUser = '';
+    let loggedAsAdmin = false;
     let adminCallback = null;
     let knockoutTeams = {};
 
@@ -691,16 +692,38 @@
         const senha = document.getElementById('palpite-senha').value;
         if (!nome) { alert('⚠️ Selecione um apostador!'); return; }
         if (!senha) { alert('⚠️ Digite a senha!'); return; }
-        if (apostadores[nome] !== senha) { alert('❌ Senha incorreta!'); return; }
+        
+        // Verifica se é admin editando (admin pode usar a senha admin pra editar qualquer apostador)
+        const isAdmin = (senha === adminPass && adminPass !== '');
+        
+        if (!isAdmin && apostadores[nome] !== senha) { alert('❌ Senha incorreta!'); return; }
+        
         loggedUser = nome;
-        document.getElementById('palpites-status').innerHTML = `<div class="status-msg status-ok">✅ Logado como <strong>${nome}</strong></div>`;
-        renderPalpites(nome);
-        document.getElementById('palpites-actions').style.display = 'flex';
+        loggedAsAdmin = isAdmin;
+        
+        const pp = palpites[nome] || {};
+        const temPalpites = Object.keys(pp).length > 0;
+        
+        if (temPalpites && !isAdmin) {
+            // Apostador já salvou, só pode visualizar
+            document.getElementById('palpites-status').innerHTML = `<div class="status-msg status-ok">✅ Logado como <strong>${nome}</strong> — <em>Palpites já registrados (somente visualização)</em></div>`;
+            renderPalpites(nome, true);
+            document.getElementById('palpites-actions').style.display = 'none';
+        } else if (isAdmin) {
+            document.getElementById('palpites-status').innerHTML = `<div class="status-msg status-ok">✅ Editando palpites de <strong>${nome}</strong> como ADMIN</div>`;
+            renderPalpites(nome, false);
+            document.getElementById('palpites-actions').style.display = 'flex';
+        } else {
+            document.getElementById('palpites-status').innerHTML = `<div class="status-msg status-ok">✅ Logado como <strong>${nome}</strong> — Preencha e salve. <strong>Após salvar não poderá mais editar!</strong></div>`;
+            renderPalpites(nome, false);
+            document.getElementById('palpites-actions').style.display = 'flex';
+        }
     }
 
-    function renderPalpites(nome) {
+    function renderPalpites(nome, readonly) {
         const container = document.getElementById('palpites-container');
         const pp = palpites[nome] || {};
+        const ro = readonly ? 'disabled style="opacity:0.7;"' : '';
         let html = '';
 
         // Agrupar por data
@@ -740,9 +763,9 @@
                     <div class="match-info">
                         <span class="match-home">${m.home}</span>
                         <div class="match-score">
-                            <input type="number" min="0" max="99" id="ph_${m.id}" value="${pH}" placeholder="-">
+                            <input type="number" min="0" max="99" id="ph_${m.id}" value="${pH}" placeholder="-" ${ro}>
                             <span class="x">✕</span>
-                            <input type="number" min="0" max="99" id="pa_${m.id}" value="${pA}" placeholder="-">
+                            <input type="number" min="0" max="99" id="pa_${m.id}" value="${pA}" placeholder="-" ${ro}>
                         </div>
                         <span class="match-away">${m.away}</span>
                     </div>
@@ -757,6 +780,13 @@
 
     function savePalpites() {
         if (!loggedUser) { alert('⚠️ Faça login!'); return; }
+        
+        // Confirmação para apostador (não admin)
+        if (!loggedAsAdmin) {
+            const confirma = confirm('⚠️ ATENÇÃO: Após salvar, seus palpites ficarão travados e você NÃO poderá mais editá-los.\n\nDeseja salvar agora?');
+            if (!confirma) return;
+        }
+        
         const data = {};
         matches.forEach(m => {
             const hEl = document.getElementById(`ph_${m.id}`);
@@ -765,7 +795,15 @@
                 data[m.id] = { home: parseInt(hEl.value), away: parseInt(aEl.value) };
             }
         });
-        firebase.database().ref('palpites/' + loggedUser).set(data).then(() => alert(`✅ Palpites de ${loggedUser} salvos!`));
+        firebase.database().ref('palpites/' + loggedUser).set(data).then(() => {
+            alert(`✅ Palpites de ${loggedUser} salvos!`);
+            if (!loggedAsAdmin) {
+                // Trava os inputs
+                renderPalpites(loggedUser, true);
+                document.getElementById('palpites-actions').style.display = 'none';
+                document.getElementById('palpites-status').innerHTML = `<div class="status-msg status-ok">✅ Logado como <strong>${loggedUser}</strong> — <em>Palpites registrados (somente visualização)</em></div>`;
+            }
+        });
     }
 
     // ===== RANKING =====
