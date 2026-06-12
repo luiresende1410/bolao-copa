@@ -607,12 +607,66 @@
         firebase.database().ref('palpites/' + nome).remove();
     }
 
+    function editApostador(nome) {
+        if (!adminPass) { alert('⚠️ Defina a senha admin!'); return; }
+        const pass = prompt(`🔒 Senha admin para editar "${nome}":`);
+        if (pass !== adminPass) { alert('❌ Senha incorreta!'); return; }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay show';
+        overlay.id = 'modal-edit-apostador';
+        overlay.innerHTML = `
+        <div class="modal">
+            <h3>✏️ Editar Apostador: ${nome}</h3>
+            <label style="color:#a8d5b1; font-size:0.82em; display:block; margin-bottom:4px;">Novo nome (deixe vazio para manter):</label>
+            <input type="text" id="edit-nome" placeholder="${nome}" value="${nome}">
+            <label style="color:#a8d5b1; font-size:0.82em; display:block; margin-bottom:4px;">Nova senha (deixe vazio para manter):</label>
+            <input type="text" id="edit-senha" placeholder="Nova senha..." value="${apostadores[nome] || ''}">
+            <div class="modal-btns">
+                <button class="btn-gray" onclick="document.getElementById('modal-edit-apostador').remove()">Cancelar</button>
+                <button class="btn-green" onclick="saveEditApostador('${nome}')">Salvar</button>
+            </div>
+        </div>`;
+        document.body.appendChild(overlay);
+    }
+
+    function saveEditApostador(nomeOriginal) {
+        const novoNome = document.getElementById('edit-nome').value.trim();
+        const novaSenha = document.getElementById('edit-senha').value.trim();
+        
+        if (!novoNome) { alert('⚠️ O nome não pode ficar vazio!'); return; }
+        if (!novaSenha) { alert('⚠️ A senha não pode ficar vazia!'); return; }
+
+        const db = firebase.database();
+
+        if (novoNome !== nomeOriginal) {
+            // Renomear: copiar palpites pro novo nome, remover o antigo
+            if (apostadores[novoNome]) { alert('⚠️ Já existe um apostador com esse nome!'); return; }
+            
+            const palpitesAntigos = palpites[nomeOriginal] || null;
+            
+            // Remover antigo
+            db.ref('apostadores/' + nomeOriginal).remove();
+            db.ref('palpites/' + nomeOriginal).remove();
+            
+            // Criar novo
+            db.ref('apostadores/' + novoNome).set(novaSenha);
+            if (palpitesAntigos) db.ref('palpites/' + novoNome).set(palpitesAntigos);
+        } else {
+            // Só alterar senha
+            db.ref('apostadores/' + nomeOriginal).set(novaSenha);
+        }
+
+        document.getElementById('modal-edit-apostador').remove();
+        alert('✅ Apostador atualizado!');
+    }
+
     function renderApostadores() {
         const list = document.getElementById('apostador-list');
         if (!list) return;
         const nomes = Object.keys(apostadores);
         list.innerHTML = nomes.map(a =>
-            `<span class="apostador-tag">${a} <span class="remove" onclick="removeApostador('${a}')">✕</span></span>`
+            `<span class="apostador-tag">${a} <span class="remove" onclick="editApostador('${a}')" title="Editar">✏️</span> <span class="remove" onclick="removeApostador('${a}')" title="Remover">✕</span></span>`
         ).join('') || '<span style="color:#7fba8a; font-size:0.85em;">Nenhum apostador cadastrado</span>';
     }
 
