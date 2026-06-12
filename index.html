@@ -497,41 +497,39 @@
         const container = document.getElementById('matches-container');
         let html = '';
         
-        // Fase de grupos com expandir/recolher
-        const groups = [...new Set(groupMatches.map(m => m.group))];
-        html += '<h3 style="color:#f7d917; margin-bottom:12px; font-size:1.1em;">📋 Fase de Grupos</h3>';
-        groups.forEach(group => {
-            const gm = groupMatches.filter(m => m.group === group);
-            html += `<div class="card">
-                <div class="group-title" onclick="toggleGroup('rg_${group}', this)">
-                    <span>⚽ Grupo ${group}</span>
-                    <span class="arrow">▼</span>
-                </div>
-                <div class="group-matches" id="rg_${group}">`;
-            gm.forEach(m => {
-                const r = results[m.id];
-                const rH = r ? r.home : '';
-                const rA = r ? r.away : '';
-                html += renderMatchRow(m, rH, rA, 'rh', 'ra');
-            });
-            html += '</div></div>';
+        // Agrupar todos os jogos por data
+        const allMatches = [...groupMatches, ...knockoutMatches];
+        const dateGroups = {};
+        allMatches.forEach(m => {
+            if (!dateGroups[m.date]) dateGroups[m.date] = [];
+            dateGroups[m.date].push(m);
         });
 
-        // Mata-mata
-        html += '<h3 style="color:#f7d917; margin:20px 0 12px; font-size:1.1em;">⚔️ Fase Eliminatória</h3>';
-        const phases = [...new Set(knockoutMatches.map(m => m.phase))];
-        phases.forEach(phase => {
-            const pm = knockoutMatches.filter(m => m.phase === phase);
+        // Ordenar as datas
+        const sortedDates = Object.keys(dateGroups).sort((a, b) => {
+            const [dA, mA] = a.split('/').map(Number);
+            const [dB, mB] = b.split('/').map(Number);
+            return (mA * 100 + dA) - (mB * 100 + dB);
+        });
+
+        sortedDates.forEach(date => {
+            const dayMatches = dateGroups[date];
+            const [dia, mes] = date.split('/');
+            const meses = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+            const label = `${dia} de ${meses[parseInt(mes)]}`;
+            
             html += `<div class="card">
-                <div class="group-title" onclick="toggleGroup('rp_${phase}', this)">
-                    <span>${phaseNames[phase]}</span>
-                    <span class="arrow">▼</span>
+                <div class="group-title" onclick="toggleGroup('rd_${date.replace('/','')}', this)">
+                    <span>📅 ${label}</span>
+                    <span class="arrow collapsed">▼</span>
                 </div>
-                <div class="group-matches" id="rp_${phase}">`;
-            pm.forEach(m => {
+                <div class="group-matches collapsed" id="rd_${date.replace('/','')}">`;
+            dayMatches.forEach(m => {
                 const r = results[m.id];
                 const rH = r ? r.home : '';
                 const rA = r ? r.away : '';
+                const groupLabel = m.group ? `<span style="font-size:0.65em; color:#7fba8a; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:10px; margin-left:4px;">Grupo ${m.group}</span>` : 
+                    `<span style="font-size:0.65em; color:#f7d917; background:rgba(247,217,23,0.1); padding:1px 6px; border-radius:10px; margin-left:4px;">${phaseNames[m.phase] || ''}</span>`;
                 html += `
                 <div class="match">
                     <div class="match-info">
@@ -543,7 +541,7 @@
                         </div>
                         <span class="match-away">${m.away}</span>
                     </div>
-                    <span class="match-date">📅 ${m.date}</span>
+                    <span class="match-date">${groupLabel}</span>
                 </div>`;
             });
             html += '</div></div>';
@@ -553,6 +551,8 @@
     }
 
     function renderMatchRow(m, valH, valA, prefH, prefA) {
+        const groupLabel = m.group ? `<span style="font-size:0.65em; color:#7fba8a; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:10px;">Grupo ${m.group}</span>` : 
+            `<span style="font-size:0.65em; color:#f7d917; background:rgba(247,217,23,0.1); padding:1px 6px; border-radius:10px;">${phaseNames[m.phase] || ''}</span>`;
         return `
         <div class="match">
             <div class="match-info">
@@ -564,7 +564,7 @@
                 </div>
                 <span class="match-away">${m.away}</span>
             </div>
-            <span class="match-date">📅 ${m.date}</span>
+            <span class="match-date">${groupLabel}</span>
         </div>`;
     }
 
@@ -703,41 +703,38 @@
         const pp = palpites[nome] || {};
         let html = '';
 
-        // Fase de grupos
-        const groups = [...new Set(groupMatches.map(m => m.group))];
-        html += '<h3 style="color:#f7d917; margin-bottom:12px; font-size:1.1em;">📋 Fase de Grupos</h3>';
-        groups.forEach(group => {
-            const gm = groupMatches.filter(m => m.group === group);
-            html += `<div class="card">
-                <div class="group-title" onclick="toggleGroup('pg_${group}', this)">
-                    <span>⚽ Grupo ${group}</span>
-                    <span class="arrow">▼</span>
-                </div>
-                <div class="group-matches" id="pg_${group}">`;
-            gm.forEach(m => {
-                const p = pp[m.id];
-                const pH = p ? p.home : '';
-                const pA = p ? p.away : '';
-                html += renderMatchRow(m, pH, pA, 'ph', 'pa');
-            });
-            html += '</div></div>';
+        // Agrupar por data
+        const allMatches = [...groupMatches, ...knockoutMatches];
+        const dateGroups = {};
+        allMatches.forEach(m => {
+            if (!dateGroups[m.date]) dateGroups[m.date] = [];
+            dateGroups[m.date].push(m);
         });
 
-        // Mata-mata
-        html += '<h3 style="color:#f7d917; margin:20px 0 12px; font-size:1.1em;">⚔️ Fase Eliminatória</h3>';
-        const phases = [...new Set(knockoutMatches.map(m => m.phase))];
-        phases.forEach(phase => {
-            const pm = knockoutMatches.filter(m => m.phase === phase);
+        const sortedDates = Object.keys(dateGroups).sort((a, b) => {
+            const [dA, mA] = a.split('/').map(Number);
+            const [dB, mB] = b.split('/').map(Number);
+            return (mA * 100 + dA) - (mB * 100 + dB);
+        });
+
+        sortedDates.forEach(date => {
+            const dayMatches = dateGroups[date];
+            const [dia, mes] = date.split('/');
+            const meses = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+            const label = `${dia} de ${meses[parseInt(mes)]}`;
+            
             html += `<div class="card">
-                <div class="group-title" onclick="toggleGroup('pp_${phase}', this)">
-                    <span>${phaseNames[phase]}</span>
-                    <span class="arrow">▼</span>
+                <div class="group-title" onclick="toggleGroup('pd_${date.replace('/','')}', this)">
+                    <span>📅 ${label}</span>
+                    <span class="arrow collapsed">▼</span>
                 </div>
-                <div class="group-matches" id="pp_${phase}">`;
-            pm.forEach(m => {
+                <div class="group-matches collapsed" id="pd_${date.replace('/','')}">`;
+            dayMatches.forEach(m => {
                 const p = pp[m.id];
                 const pH = p ? p.home : '';
                 const pA = p ? p.away : '';
+                const groupLabel = m.group ? `<span style="font-size:0.65em; color:#7fba8a; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:10px;">Grupo ${m.group}</span>` : 
+                    `<span style="font-size:0.65em; color:#f7d917; background:rgba(247,217,23,0.1); padding:1px 6px; border-radius:10px;">${phaseNames[m.phase] || ''}</span>`;
                 html += `
                 <div class="match">
                     <div class="match-info">
@@ -749,7 +746,7 @@
                         </div>
                         <span class="match-away">${m.away}</span>
                     </div>
-                    <span class="match-date">📅 ${m.date}</span>
+                    <span class="match-date">${groupLabel}</span>
                 </div>`;
             });
             html += '</div></div>';
