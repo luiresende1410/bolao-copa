@@ -192,9 +192,19 @@
                 <div class="form-row">
                     <input type="text" id="novo-nome" placeholder="Nome...">
                     <input type="password" id="novo-senha" placeholder="Senha...">
+                    <select id="novo-grupo"><option value="">Sem grupo</option></select>
                     <button class="btn-green" onclick="addApostador()">+ Adicionar</button>
                 </div>
                 <div class="apostador-list" id="apostador-list"></div>
+            </div>
+            <div class="card">
+                <h3 style="margin-bottom:10px; color:#f7d917;">👥 Gerenciar Grupos</h3>
+                <p style="color:#a8d5b1; margin-bottom:10px; font-size:0.82em;">Crie grupos para ter rankings separados (Família, Amigos, Trabalho...).</p>
+                <div class="form-row">
+                    <input type="text" id="novo-grupo-nome" placeholder="Nome do grupo...">
+                    <button class="btn-green" onclick="addGrupo()">+ Criar Grupo</button>
+                </div>
+                <div class="apostador-list" id="grupos-list"></div>
             </div>
             <div class="card">
                 <h3 style="margin-bottom:10px; color:#42a5f5;">⚙️ Administrador</h3>
@@ -223,6 +233,7 @@
                 <div id="palpites-container"></div>
                 <div class="actions" id="palpites-actions" style="display:none;">
                     <button class="btn btn-green" onclick="savePalpites()">💾 Salvar Palpites</button>
+                    <button class="btn btn-gray" onclick="showChangePassword()">🔑 Alterar Senha</button>
                 </div>
             </div>
         </div>
@@ -231,6 +242,11 @@
         <div id="classificacao" class="section">
             <div class="card">
                 <h3 style="margin-bottom:15px; color:#f7d917;">🏆 Ranking do Bolão</h3>
+                <div class="form-row" style="margin-bottom:15px;">
+                    <select id="ranking-filtro-grupo" onchange="calcularRanking()" style="flex:1; padding:10px; border:1px solid rgba(247,217,23,0.3); border-radius:8px; background:rgba(0,0,0,0.4); color:#fff; font-size:0.9em;">
+                        <option value="">🌍 Todos os apostadores</option>
+                    </select>
+                </div>
                 <div class="ranking" id="ranking-container">
                     <div class="loading">Carregando ranking...</div>
                 </div>
@@ -432,6 +448,8 @@
     let loggedAsAdmin = false;
     let adminCallback = null;
     let knockoutTeams = {};
+    let grupos = {};
+    let apostadorGrupos = {}; // {nomeApostador: "nomeGrupo"}
 
     // ===== INIT =====
     function initApp() {
@@ -440,6 +458,8 @@
         db.ref('apostadores').on('value', snap => { apostadores = snap.val() || {}; renderApostadores(); updateApostadorSelect(); });
         db.ref('results').on('value', snap => { results = snap.val() || {}; renderMatches(); calcularRanking(); });
         db.ref('palpites').on('value', snap => { palpites = snap.val() || {}; calcularRanking(); });
+        db.ref('grupos').on('value', snap => { grupos = snap.val() || {}; renderGrupos(); updateGrupoSelects(); });
+        db.ref('apostadorGrupos').on('value', snap => { apostadorGrupos = snap.val() || {}; renderApostadores(); calcularRanking(); });
         db.ref('knockoutTeams').on('value', snap => {
             knockoutTeams = snap.val() || {};
             knockoutMatches.forEach(m => {
@@ -591,14 +611,19 @@
     function addApostador() {
         const nome = document.getElementById('novo-nome').value.trim();
         const senha = document.getElementById('novo-senha').value.trim();
+        const grupo = document.getElementById('novo-grupo').value;
         if (!nome) { alert('⚠️ Digite um nome!'); return; }
         if (!senha) { alert('⚠️ Digite uma senha!'); return; }
         if (apostadores[nome]) { alert('⚠️ Nome já existe!'); return; }
-        firebase.database().ref('apostadores/' + nome).set(senha).then(() => {
-            document.getElementById('novo-nome').value = '';
-            document.getElementById('novo-senha').value = '';
-            alert(`✅ ${nome} cadastrado(a)!`);
-        });
+        
+        const db = firebase.database();
+        db.ref('apostadores/' + nome).set(senha);
+        if (grupo) db.ref('apostadorGrupos/' + nome).set(grupo);
+        
+        document.getElementById('novo-nome').value = '';
+        document.getElementById('novo-senha').value = '';
+        document.getElementById('novo-grupo').value = '';
+        alert(`✅ ${nome} cadastrado(a)!`);
     }
 
     function removeApostador(nome) {
@@ -614,6 +639,11 @@
         const pass = prompt(`🔒 Senha admin para editar "${nome}":`);
         if (pass !== adminPass) { alert('❌ Senha incorreta!'); return; }
 
+        const grupoAtual = apostadorGrupos[nome] || '';
+        const grupoOptions = Object.keys(grupos).map(g => 
+            `<option value="${g}" ${g === grupoAtual ? 'selected' : ''}>${g}</option>`
+        ).join('');
+
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay show';
         overlay.id = 'modal-edit-apostador';
@@ -624,6 +654,11 @@
             <input type="text" id="edit-nome" placeholder="${nome}" value="${nome}">
             <label style="color:#a8d5b1; font-size:0.82em; display:block; margin-bottom:4px;">Nova senha (deixe vazio para manter):</label>
             <input type="text" id="edit-senha" placeholder="Nova senha..." value="${apostadores[nome] || ''}">
+            <label style="color:#a8d5b1; font-size:0.82em; display:block; margin-bottom:4px;">Grupo:</label>
+            <select id="edit-grupo" style="width:100%; padding:10px; border:1px solid rgba(247,217,23,0.3); border-radius:8px; background:rgba(0,0,0,0.4); color:#fff; font-size:1em; margin-bottom:12px;">
+                <option value="">Sem grupo</option>
+                ${grupoOptions}
+            </select>
             <div class="modal-btns">
                 <button class="btn-gray" onclick="document.getElementById('modal-edit-apostador').remove()">Cancelar</button>
                 <button class="btn-green" onclick="saveEditApostador('${nome}')">Salvar</button>
@@ -635,6 +670,7 @@
     function saveEditApostador(nomeOriginal) {
         const novoNome = document.getElementById('edit-nome').value.trim();
         const novaSenha = document.getElementById('edit-senha').value.trim();
+        const novoGrupo = document.getElementById('edit-grupo').value;
         
         if (!novoNome) { alert('⚠️ O nome não pode ficar vazio!'); return; }
         if (!novaSenha) { alert('⚠️ A senha não pode ficar vazia!'); return; }
@@ -649,18 +685,24 @@
             const updates = {};
             updates['apostadores/' + nomeOriginal] = null;
             updates['palpites/' + nomeOriginal] = null;
+            updates['apostadorGrupos/' + nomeOriginal] = null;
             updates['apostadores/' + novoNome] = novaSenha;
             if (palpitesAntigos) updates['palpites/' + novoNome] = palpitesAntigos;
+            if (novoGrupo) updates['apostadorGrupos/' + novoNome] = novoGrupo;
             
             db.ref().update(updates).then(() => {
                 document.getElementById('modal-edit-apostador').remove();
                 alert('✅ Apostador atualizado!');
             });
         } else {
-            db.ref('apostadores/' + nomeOriginal).set(novaSenha).then(() => {
-                document.getElementById('modal-edit-apostador').remove();
-                alert('✅ Senha atualizada!');
-            });
+            db.ref('apostadores/' + nomeOriginal).set(novaSenha);
+            if (novoGrupo) {
+                db.ref('apostadorGrupos/' + nomeOriginal).set(novoGrupo);
+            } else {
+                db.ref('apostadorGrupos/' + nomeOriginal).remove();
+            }
+            document.getElementById('modal-edit-apostador').remove();
+            alert('✅ Apostador atualizado!');
         }
     }
 
@@ -668,9 +710,10 @@
         const list = document.getElementById('apostador-list');
         if (!list) return;
         const nomes = Object.keys(apostadores);
-        list.innerHTML = nomes.map(a =>
-            `<span class="apostador-tag">${a} <span class="remove" onclick="editApostador('${a}')" title="Editar">✏️</span> <span class="remove" onclick="removeApostador('${a}')" title="Remover">✕</span></span>`
-        ).join('') || '<span style="color:#7fba8a; font-size:0.85em;">Nenhum apostador cadastrado</span>';
+        list.innerHTML = nomes.map(a => {
+            const grupo = apostadorGrupos[a] ? `<span style="font-size:0.7em; opacity:0.8;">[${apostadorGrupos[a]}]</span>` : '';
+            return `<span class="apostador-tag">${a} ${grupo} <span class="remove" onclick="editApostador('${a}')" title="Editar">✏️</span> <span class="remove" onclick="removeApostador('${a}')" title="Remover">✕</span></span>`;
+        }).join('') || '<span style="color:#7fba8a; font-size:0.85em;">Nenhum apostador cadastrado</span>';
     }
 
     function updateApostadorSelect() {
@@ -678,6 +721,54 @@
         if (!select) return;
         const nomes = Object.keys(apostadores);
         select.innerHTML = '<option value="">-- Apostador --</option>' + nomes.map(a => `<option value="${a}">${a}</option>`).join('');
+    }
+
+    // ===== GRUPOS =====
+    function addGrupo() {
+        const input = document.getElementById('novo-grupo-nome');
+        const nome = input.value.trim();
+        if (!nome) { alert('⚠️ Digite o nome do grupo!'); return; }
+        if (grupos[nome]) { alert('⚠️ Grupo já existe!'); return; }
+        firebase.database().ref('grupos/' + nome).set(true).then(() => {
+            input.value = '';
+            alert(`✅ Grupo "${nome}" criado!`);
+        });
+    }
+
+    function removeGrupo(nome) {
+        if (!adminPass) { alert('⚠️ Defina a senha admin!'); return; }
+        const pass = prompt(`🔒 Senha admin para remover grupo "${nome}":`);
+        if (pass !== adminPass) { alert('❌ Senha incorreta!'); return; }
+        firebase.database().ref('grupos/' + nome).remove();
+        // Remove associações de apostadores a esse grupo
+        Object.keys(apostadorGrupos).forEach(ap => {
+            if (apostadorGrupos[ap] === nome) {
+                firebase.database().ref('apostadorGrupos/' + ap).remove();
+            }
+        });
+    }
+
+    function renderGrupos() {
+        const list = document.getElementById('grupos-list');
+        if (!list) return;
+        const nomes = Object.keys(grupos);
+        list.innerHTML = nomes.map(g =>
+            `<span class="apostador-tag" style="background:#6c5ce7;">${g} <span class="remove" onclick="removeGrupo('${g}')">✕</span></span>`
+        ).join('') || '<span style="color:#7fba8a; font-size:0.85em;">Nenhum grupo criado</span>';
+    }
+
+    function updateGrupoSelects() {
+        const nomes = Object.keys(grupos);
+        // Select no cadastro de apostador
+        const selectCadastro = document.getElementById('novo-grupo');
+        if (selectCadastro) {
+            selectCadastro.innerHTML = '<option value="">Sem grupo</option>' + nomes.map(g => `<option value="${g}">${g}</option>`).join('');
+        }
+        // Select no ranking
+        const selectRanking = document.getElementById('ranking-filtro-grupo');
+        if (selectRanking) {
+            selectRanking.innerHTML = '<option value="">🌍 Todos os apostadores</option>' + nomes.map(g => `<option value="${g}">👥 ${g}</option>`).join('');
+        }
     }
 
     // ===== PALPITES =====
@@ -695,7 +786,7 @@
         if (!nome) { alert('⚠️ Selecione um apostador!'); return; }
         if (!senha) { alert('⚠️ Digite a senha!'); return; }
         
-        // Verifica se é admin editando (admin pode usar a senha admin pra editar qualquer apostador)
+        // Verifica se é admin editando
         const isAdmin = (senha === adminPass && adminPass !== '');
         
         if (!isAdmin && apostadores[nome] !== senha) { alert('❌ Senha incorreta!'); return; }
@@ -703,29 +794,18 @@
         loggedUser = nome;
         loggedAsAdmin = isAdmin;
         
-        const pp = palpites[nome] || {};
-        const temPalpites = Object.keys(pp).length > 0;
-        
-        if (temPalpites && !isAdmin) {
-            // Apostador já salvou, só pode visualizar
-            document.getElementById('palpites-status').innerHTML = `<div class="status-msg status-ok">✅ Logado como <strong>${nome}</strong> — <em>Palpites já registrados (somente visualização)</em></div>`;
-            renderPalpites(nome, true);
-            document.getElementById('palpites-actions').style.display = 'none';
-        } else if (isAdmin) {
+        if (isAdmin) {
             document.getElementById('palpites-status').innerHTML = `<div class="status-msg status-ok">✅ Editando palpites de <strong>${nome}</strong> como ADMIN</div>`;
-            renderPalpites(nome, false);
-            document.getElementById('palpites-actions').style.display = 'flex';
         } else {
-            document.getElementById('palpites-status').innerHTML = `<div class="status-msg status-ok">✅ Logado como <strong>${nome}</strong> — Preencha e salve. <strong>Após salvar não poderá mais editar!</strong></div>`;
-            renderPalpites(nome, false);
-            document.getElementById('palpites-actions').style.display = 'flex';
+            document.getElementById('palpites-status').innerHTML = `<div class="status-msg status-ok">✅ Logado como <strong>${nome}</strong> — Jogos bloqueiam 10min antes do início</div>`;
         }
+        renderPalpites(nome, false);
+        document.getElementById('palpites-actions').style.display = 'flex';
     }
 
     function renderPalpites(nome, readonly) {
         const container = document.getElementById('palpites-container');
         const pp = palpites[nome] || {};
-        const ro = readonly ? 'disabled style="opacity:0.7;"' : '';
         let html = '';
 
         // Agrupar por data
@@ -761,18 +841,24 @@
                 const groupLabel = m.group ? `<span style="font-size:0.65em; color:#7fba8a; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:10px;">Grupo ${m.group}</span>` : 
                     `<span style="font-size:0.65em; color:#f7d917; background:rgba(247,217,23,0.1); padding:1px 6px; border-radius:10px;">${phaseNames[m.phase] || ''}</span>`;
                 const timeLabel = m.time ? `<span style="font-size:0.7em; color:#a8d5b1;">🕐 ${m.time}</span>` : '';
+                
+                // Bloqueia jogo se readonly OU se já passou o horário limite (10min antes)
+                const locked = readonly || (!loggedAsAdmin && isMatchLocked(m));
+                const lockAttr = locked ? 'disabled style="opacity:0.7;"' : '';
+                const lockIcon = (!readonly && !loggedAsAdmin && isMatchLocked(m)) ? '<span style="font-size:0.65em; color:#e57373;">🔒 Encerrado</span> ' : '';
+                
                 html += `
                 <div class="match">
                     <div class="match-info">
                         <span class="match-home">${m.home}</span>
                         <div class="match-score">
-                            <input type="number" min="0" max="99" id="ph_${m.id}" value="${pH}" placeholder="-" ${ro}>
+                            <input type="number" min="0" max="99" id="ph_${m.id}" value="${pH}" placeholder="-" ${lockAttr}>
                             <span class="x">✕</span>
-                            <input type="number" min="0" max="99" id="pa_${m.id}" value="${pA}" placeholder="-" ${ro}>
+                            <input type="number" min="0" max="99" id="pa_${m.id}" value="${pA}" placeholder="-" ${lockAttr}>
                         </div>
                         <span class="match-away">${m.away}</span>
                     </div>
-                    <span class="match-date">${timeLabel} ${groupLabel}</span>
+                    <span class="match-date">${lockIcon}${timeLabel} ${groupLabel}</span>
                 </div>`;
             });
             html += '</div></div>';
@@ -781,31 +867,74 @@
         container.innerHTML = html;
     }
 
+    // Verifica se um jogo está bloqueado (10 min antes do horário)
+    function isMatchLocked(m) {
+        if (!m.date || !m.time) return false;
+        const [dia, mes] = m.date.split('/').map(Number);
+        const [hora, min] = m.time.split(':').map(Number);
+        // Ano 2026, mês é base 1
+        const matchDate = new Date(2026, mes - 1, dia, hora, min);
+        const lockTime = new Date(matchDate.getTime() - 10 * 60 * 1000); // 10 min antes
+        return new Date() >= lockTime;
+    }
+
     function savePalpites() {
         if (!loggedUser) { alert('⚠️ Faça login!'); return; }
         
-        // Confirmação para apostador (não admin)
-        if (!loggedAsAdmin) {
-            const confirma = confirm('⚠️ ATENÇÃO: Após salvar, seus palpites ficarão travados e você NÃO poderá mais editá-los.\n\nDeseja salvar agora?');
-            if (!confirma) return;
-        }
-        
         const data = {};
+        const palpitesAntigos = palpites[loggedUser] || {};
+        
         matches.forEach(m => {
             const hEl = document.getElementById(`ph_${m.id}`);
             const aEl = document.getElementById(`pa_${m.id}`);
+            
             if (hEl && aEl && hEl.value !== '' && aEl.value !== '') {
-                data[m.id] = { home: parseInt(hEl.value), away: parseInt(aEl.value) };
+                // Se não é admin e o jogo está bloqueado, mantém o palpite antigo
+                if (!loggedAsAdmin && isMatchLocked(m)) {
+                    if (palpitesAntigos[m.id]) data[m.id] = palpitesAntigos[m.id];
+                } else {
+                    data[m.id] = { home: parseInt(hEl.value), away: parseInt(aEl.value) };
+                }
+            } else if (palpitesAntigos[m.id] && !loggedAsAdmin && isMatchLocked(m)) {
+                // Preserva palpites antigos de jogos bloqueados
+                data[m.id] = palpitesAntigos[m.id];
             }
         });
+        
         firebase.database().ref('palpites/' + loggedUser).set(data).then(() => {
             alert(`✅ Palpites de ${loggedUser} salvos!`);
-            if (!loggedAsAdmin) {
-                // Trava os inputs
-                renderPalpites(loggedUser, true);
-                document.getElementById('palpites-actions').style.display = 'none';
-                document.getElementById('palpites-status').innerHTML = `<div class="status-msg status-ok">✅ Logado como <strong>${loggedUser}</strong> — <em>Palpites registrados (somente visualização)</em></div>`;
-            }
+        });
+    }
+
+    // ===== ALTERAR SENHA =====
+    function showChangePassword() {
+        if (!loggedUser) { alert('⚠️ Faça login primeiro!'); return; }
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay show';
+        overlay.id = 'modal-change-pass';
+        overlay.innerHTML = `
+        <div class="modal">
+            <h3>🔑 Alterar Senha</h3>
+            <label style="color:#a8d5b1; font-size:0.82em; display:block; margin-bottom:4px;">Nova senha:</label>
+            <input type="password" id="new-pass-1" placeholder="Digite a nova senha...">
+            <label style="color:#a8d5b1; font-size:0.82em; display:block; margin-bottom:4px;">Confirme a nova senha:</label>
+            <input type="password" id="new-pass-2" placeholder="Confirme a nova senha..." onkeypress="if(event.key==='Enter')saveNewPassword()">
+            <div class="modal-btns">
+                <button class="btn-gray" onclick="document.getElementById('modal-change-pass').remove()">Cancelar</button>
+                <button class="btn-green" onclick="saveNewPassword()">Salvar</button>
+            </div>
+        </div>`;
+        document.body.appendChild(overlay);
+    }
+
+    function saveNewPassword() {
+        const p1 = document.getElementById('new-pass-1').value.trim();
+        const p2 = document.getElementById('new-pass-2').value.trim();
+        if (!p1) { alert('⚠️ Digite a nova senha!'); return; }
+        if (p1 !== p2) { alert('❌ As senhas não coincidem!'); return; }
+        firebase.database().ref('apostadores/' + loggedUser).set(p1).then(() => {
+            document.getElementById('modal-change-pass').remove();
+            alert('✅ Senha alterada com sucesso!');
         });
     }
 
@@ -813,8 +942,21 @@
     function calcularRanking() {
         const container = document.getElementById('ranking-container');
         if (!container) return;
-        const nomes = Object.keys(apostadores);
-        if (nomes.length === 0) { container.innerHTML = '<p style="color:#a8d5b1;">Nenhum apostador cadastrado.</p>'; return; }
+        
+        const filtroGrupo = document.getElementById('ranking-filtro-grupo');
+        const grupoSelecionado = filtroGrupo ? filtroGrupo.value : '';
+        
+        let nomes = Object.keys(apostadores);
+        
+        // Filtrar por grupo se selecionado
+        if (grupoSelecionado) {
+            nomes = nomes.filter(n => apostadorGrupos[n] === grupoSelecionado);
+        }
+        
+        if (nomes.length === 0) {
+            container.innerHTML = '<p style="color:#a8d5b1;">Nenhum apostador neste grupo.</p>';
+            return;
+        }
 
         const ranking = [];
         nomes.forEach(nome => {
