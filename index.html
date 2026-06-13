@@ -165,6 +165,7 @@
             <button class="tab" onclick="showSection('apostadores')">👥 Apostadores</button>
             <button class="tab" onclick="showSection('palpites')">🎯 Palpites</button>
             <button class="tab" onclick="showSection('classificacao')">🏆 Ranking</button>
+            <button class="tab" onclick="showSection('manual')">📖 Manual</button>
         </div>
 
         <!-- RESULTADOS -->
@@ -249,6 +250,104 @@
                 </div>
                 <div class="ranking" id="ranking-container">
                     <div class="loading">Carregando ranking...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MANUAL -->
+        <div id="manual" class="section">
+            <div class="card">
+                <h3 style="color:#f7d917; margin-bottom:15px;">📖 Manual do Bolão</h3>
+                
+                <div style="margin-bottom:20px;">
+                    <h4 style="color:#f7d917; margin-bottom:8px;">⚽ O que é?</h4>
+                    <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6;">
+                        Este é o Bolão da Copa do Mundo 2026! Você faz palpites dos placares dos jogos e ganha pontos conforme acerta. Quem tiver mais pontos no final, vence!
+                    </p>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <h4 style="color:#f7d917; margin-bottom:8px;">📌 Pontuação</h4>
+                    <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6;">
+                        <strong style="color:#f7d917;">20 pontos</strong> — Acertou o placar exato<br>
+                        <em style="color:#7fba8a;">Ex: Você apostou 2x1 e o resultado foi 2x1</em>
+                    </p>
+                    <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6; margin-top:6px;">
+                        <strong style="color:#f7d917;">10 pontos</strong> — Acertou o vencedor (ou empate), mas errou o placar<br>
+                        <em style="color:#7fba8a;">Ex: Você apostou 3x1 e o resultado foi 2x0 (acertou que o time da casa venceu)</em>
+                    </p>
+                    <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6; margin-top:6px;">
+                        <strong style="color:#f7d917;">5 pontos</strong> — Acertou os gols de um dos times<br>
+                        <em style="color:#7fba8a;">Ex: Você apostou 2x1 e o resultado foi 2x0 (acertou os 2 gols do time da casa)</em>
+                    </p>
+                    <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6; margin-top:6px;">
+                        <strong style="color:#f7d917;">0 pontos</strong> — Não acertou nada<br>
+                        <em style="color:#7fba8a;">Ex: Você apostou 2x1 e o resultado foi 0x3</em>
+                    </p>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <h4 style="color:#f7d917; margin-bottom:8px;">🔐 Como me cadastrar?</h4>
+                    <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6;">
+                        1. Vá na aba <strong>👥 Apostadores</strong><br>
+                        2. Digite seu nome e crie uma senha<br>
+                        3. Selecione o grupo (se houver) e clique em <strong>"+ Adicionar"</strong><br>
+                        4. Pronto! Agora pode fazer seus palpites
+                    </p>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <h4 style="color:#f7d917; margin-bottom:8px;">🎯 Como fazer palpites?</h4>
+                    <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6;">
+                        1. Vá na aba <strong>🎯 Palpites</strong><br>
+                        2. Selecione seu nome e digite sua senha<br>
+                        3. Clique em <strong>"🔓 Entrar"</strong><br>
+                        4. Expanda os dias clicando na data<br>
+                        5. Preencha seus palpites (placar de cada jogo)<br>
+                        6. Clique em <strong>"💾 Salvar Palpites"</strong><br>
+                        7. Você pode salvar parcialmente e voltar depois para completar!
+                    </p>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <h4 style="color:#f7d917; margin-bottom:8px;">⏰ Prazo para apostar</h4>
+                    <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6;">
+                        Cada jogo bloqueia <strong>10 minutos antes</strong> do horário de início. Depois disso, não é mais possível alterar o palpite daquele jogo (aparece "🔒 Encerrado").<br><br>
+                        Os demais jogos continuam abertos! Você pode preencher aos poucos, dia a dia.
+                    </p>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <h4 style="color:#f7d917; margin-bottom:8px;">🔑 Esqueci minha senha</h4>
+                    <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6;">
+                        Peça ao administrador do bolão para resetar sua senha. Ele pode editar pelo ícone ✏️ na aba Apostadores.<br><br>
+                        Se lembra a senha e quer trocar: faça login na aba Palpites e clique em <strong>"🔑 Alterar Senha"</strong>.
+                    </p>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <h4 style="color:#f7d917; margin-bottom:8px;">🏆 Como funciona o Ranking?</h4>
+                    <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6;">
+                        Na aba <strong>🏆 Ranking</strong> você vê a classificação de todos os apostadores, ordenada por pontuação. Os ícones indicam:<br><br>
+                        🎯 = Placares exatos acertados<br>
+                        ✓ = Vencedores acertados<br>
+                        ½ = Gols parciais acertados<br><br>
+                        Use o filtro de grupo para ver o ranking separado por grupo (Família, Amigos, etc.)
+                    </p>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <h4 style="color:#f7d917; margin-bottom:8px;">👥 Grupos</h4>
+                    <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6;">
+                        O bolão pode ter grupos separados (ex: Família, Amigos do Trabalho). Cada grupo tem seu próprio ranking, mas todos também aparecem no ranking geral. Peça ao admin para te colocar em um grupo.
+                    </p>
+                </div>
+
+                <div>
+                    <h4 style="color:#f7d917; margin-bottom:8px;">📅 Sobre os jogos</h4>
+                    <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6;">
+                        São 104 jogos no total: 72 na fase de grupos e 32 no mata-mata (rodada de 32, oitavas, quartas, semi, 3º lugar e final). Os horários exibidos são no fuso de Brasília (UTC-3). Os times do mata-mata serão adicionados conforme avançam na competição.
+                    </p>
                 </div>
             </div>
         </div>
