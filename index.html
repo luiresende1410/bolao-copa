@@ -642,25 +642,26 @@
         const db = firebase.database();
 
         if (novoNome !== nomeOriginal) {
-            // Renomear: copiar palpites pro novo nome, remover o antigo
             if (apostadores[novoNome]) { alert('⚠️ Já existe um apostador com esse nome!'); return; }
             
             const palpitesAntigos = palpites[nomeOriginal] || null;
             
-            // Remover antigo
-            db.ref('apostadores/' + nomeOriginal).remove();
-            db.ref('palpites/' + nomeOriginal).remove();
+            const updates = {};
+            updates['apostadores/' + nomeOriginal] = null;
+            updates['palpites/' + nomeOriginal] = null;
+            updates['apostadores/' + novoNome] = novaSenha;
+            if (palpitesAntigos) updates['palpites/' + novoNome] = palpitesAntigos;
             
-            // Criar novo
-            db.ref('apostadores/' + novoNome).set(novaSenha);
-            if (palpitesAntigos) db.ref('palpites/' + novoNome).set(palpitesAntigos);
+            db.ref().update(updates).then(() => {
+                document.getElementById('modal-edit-apostador').remove();
+                alert('✅ Apostador atualizado!');
+            });
         } else {
-            // Só alterar senha
-            db.ref('apostadores/' + nomeOriginal).set(novaSenha);
+            db.ref('apostadores/' + nomeOriginal).set(novaSenha).then(() => {
+                document.getElementById('modal-edit-apostador').remove();
+                alert('✅ Senha atualizada!');
+            });
         }
-
-        document.getElementById('modal-edit-apostador').remove();
-        alert('✅ Apostador atualizado!');
     }
 
     function renderApostadores() {
