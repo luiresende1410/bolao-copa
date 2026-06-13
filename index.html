@@ -296,78 +296,78 @@
 
     // ===== DADOS DOS JOGOS =====
     const groupMatches = [
-        { id:1, group:"A", home:"México", away:"África do Sul", date:"11/06" },
-        { id:2, group:"A", home:"Coreia do Sul", away:"Rep. Tcheca", date:"11/06" },
-        { id:3, group:"A", home:"Rep. Tcheca", away:"África do Sul", date:"18/06" },
-        { id:4, group:"A", home:"México", away:"Coreia do Sul", date:"18/06" },
-        { id:5, group:"A", home:"Rep. Tcheca", away:"México", date:"24/06" },
-        { id:6, group:"A", home:"África do Sul", away:"Coreia do Sul", date:"24/06" },
-        { id:7, group:"B", home:"Canadá", away:"Bósnia", date:"12/06" },
-        { id:8, group:"B", home:"Catar", away:"Suíça", date:"13/06" },
-        { id:9, group:"B", home:"Suíça", away:"Bósnia", date:"18/06" },
-        { id:10, group:"B", home:"Canadá", away:"Catar", date:"18/06" },
-        { id:11, group:"B", home:"Suíça", away:"Canadá", date:"24/06" },
-        { id:12, group:"B", home:"Bósnia", away:"Catar", date:"24/06" },
-        { id:13, group:"C", home:"Brasil", away:"Marrocos", date:"13/06" },
-        { id:14, group:"C", home:"Haiti", away:"Escócia", date:"13/06" },
-        { id:15, group:"C", home:"Escócia", away:"Marrocos", date:"19/06" },
-        { id:16, group:"C", home:"Brasil", away:"Haiti", date:"19/06" },
-        { id:17, group:"C", home:"Escócia", away:"Brasil", date:"24/06" },
-        { id:18, group:"C", home:"Marrocos", away:"Haiti", date:"24/06" },
-        { id:19, group:"D", home:"EUA", away:"Paraguai", date:"12/06" },
-        { id:20, group:"D", home:"Austrália", away:"Turquia", date:"13/06" },
-        { id:21, group:"D", home:"EUA", away:"Austrália", date:"19/06" },
-        { id:22, group:"D", home:"Turquia", away:"Paraguai", date:"19/06" },
-        { id:23, group:"D", home:"Turquia", away:"EUA", date:"25/06" },
-        { id:24, group:"D", home:"Paraguai", away:"Austrália", date:"25/06" },
-        { id:25, group:"E", home:"Alemanha", away:"Curaçao", date:"14/06" },
-        { id:26, group:"E", home:"C. Marfim", away:"Equador", date:"14/06" },
-        { id:27, group:"E", home:"Alemanha", away:"C. Marfim", date:"20/06" },
-        { id:28, group:"E", home:"Equador", away:"Curaçao", date:"20/06" },
-        { id:29, group:"E", home:"Curaçao", away:"C. Marfim", date:"25/06" },
-        { id:30, group:"E", home:"Equador", away:"Alemanha", date:"25/06" },
-        { id:31, group:"F", home:"Holanda", away:"Japão", date:"14/06" },
-        { id:32, group:"F", home:"Suécia", away:"Tunísia", date:"14/06" },
-        { id:33, group:"F", home:"Holanda", away:"Suécia", date:"20/06" },
-        { id:34, group:"F", home:"Tunísia", away:"Japão", date:"20/06" },
-        { id:35, group:"F", home:"Japão", away:"Suécia", date:"25/06" },
-        { id:36, group:"F", home:"Tunísia", away:"Holanda", date:"25/06" },
-        { id:37, group:"G", home:"Bélgica", away:"Egito", date:"15/06" },
-        { id:38, group:"G", home:"Irã", away:"N. Zelândia", date:"15/06" },
-        { id:39, group:"G", home:"Bélgica", away:"Irã", date:"21/06" },
-        { id:40, group:"G", home:"N. Zelândia", away:"Egito", date:"21/06" },
-        { id:41, group:"G", home:"Egito", away:"Irã", date:"26/06" },
-        { id:42, group:"G", home:"N. Zelândia", away:"Bélgica", date:"26/06" },
-        { id:43, group:"H", home:"Espanha", away:"Cabo Verde", date:"15/06" },
-        { id:44, group:"H", home:"A. Saudita", away:"Uruguai", date:"15/06" },
-        { id:45, group:"H", home:"Espanha", away:"A. Saudita", date:"21/06" },
-        { id:46, group:"H", home:"Uruguai", away:"Cabo Verde", date:"21/06" },
-        { id:47, group:"H", home:"Cabo Verde", away:"A. Saudita", date:"26/06" },
-        { id:48, group:"H", home:"Uruguai", away:"Espanha", date:"26/06" },
-        { id:49, group:"I", home:"França", away:"Senegal", date:"16/06" },
-        { id:50, group:"I", home:"Iraque", away:"Noruega", date:"16/06" },
-        { id:51, group:"I", home:"França", away:"Iraque", date:"22/06" },
-        { id:52, group:"I", home:"Noruega", away:"Senegal", date:"22/06" },
-        { id:53, group:"I", home:"Noruega", away:"França", date:"26/06" },
-        { id:54, group:"I", home:"Senegal", away:"Iraque", date:"26/06" },
-        { id:55, group:"J", home:"Argentina", away:"Argélia", date:"16/06" },
-        { id:56, group:"J", home:"Áustria", away:"Jordânia", date:"16/06" },
-        { id:57, group:"J", home:"Argentina", away:"Áustria", date:"22/06" },
-        { id:58, group:"J", home:"Jordânia", away:"Argélia", date:"22/06" },
-        { id:59, group:"J", home:"Argélia", away:"Áustria", date:"27/06" },
-        { id:60, group:"J", home:"Jordânia", away:"Argentina", date:"27/06" },
-        { id:61, group:"K", home:"Portugal", away:"RD Congo", date:"17/06" },
-        { id:62, group:"K", home:"Uzbequistão", away:"Colômbia", date:"17/06" },
-        { id:63, group:"K", home:"Portugal", away:"Uzbequistão", date:"23/06" },
-        { id:64, group:"K", home:"Colômbia", away:"RD Congo", date:"23/06" },
-        { id:65, group:"K", home:"Colômbia", away:"Portugal", date:"27/06" },
-        { id:66, group:"K", home:"RD Congo", away:"Uzbequistão", date:"27/06" },
-        { id:67, group:"L", home:"Inglaterra", away:"Croácia", date:"17/06" },
-        { id:68, group:"L", home:"Gana", away:"Panamá", date:"17/06" },
-        { id:69, group:"L", home:"Inglaterra", away:"Gana", date:"23/06" },
-        { id:70, group:"L", home:"Panamá", away:"Croácia", date:"23/06" },
-        { id:71, group:"L", home:"Panamá", away:"Inglaterra", date:"27/06" },
-        { id:72, group:"L", home:"Croácia", away:"Gana", date:"27/06" },
+        { id:1, group:"A", home:"🇲🇽 México", away:"🇿🇦 África do Sul", date:"11/06", time:"16:00" },
+        { id:2, group:"A", home:"🇰🇷 Coreia do Sul", away:"🇨🇿 Rep. Tcheca", date:"11/06", time:"22:00" },
+        { id:3, group:"A", home:"🇨🇿 Rep. Tcheca", away:"🇿🇦 África do Sul", date:"18/06", time:"13:00" },
+        { id:4, group:"A", home:"🇲🇽 México", away:"🇰🇷 Coreia do Sul", date:"18/06", time:"22:00" },
+        { id:5, group:"A", home:"🇨🇿 Rep. Tcheca", away:"🇲🇽 México", date:"24/06", time:"22:00" },
+        { id:6, group:"A", home:"🇿🇦 África do Sul", away:"🇰🇷 Coreia do Sul", date:"24/06", time:"22:00" },
+        { id:7, group:"B", home:"🇨🇦 Canadá", away:"🇧🇦 Bósnia", date:"12/06", time:"16:00" },
+        { id:8, group:"B", home:"🇶🇦 Catar", away:"🇨🇭 Suíça", date:"13/06", time:"16:00" },
+        { id:9, group:"B", home:"🇨🇭 Suíça", away:"🇧🇦 Bósnia", date:"18/06", time:"16:00" },
+        { id:10, group:"B", home:"🇨🇦 Canadá", away:"🇶🇦 Catar", date:"18/06", time:"19:00" },
+        { id:11, group:"B", home:"🇨🇭 Suíça", away:"🇨🇦 Canadá", date:"24/06", time:"16:00" },
+        { id:12, group:"B", home:"🇧🇦 Bósnia", away:"🇶🇦 Catar", date:"24/06", time:"16:00" },
+        { id:13, group:"C", home:"🇧🇷 Brasil", away:"🇲🇦 Marrocos", date:"13/06", time:"19:00" },
+        { id:14, group:"C", home:"🇭🇹 Haiti", away:"🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escócia", date:"13/06", time:"22:00" },
+        { id:15, group:"C", home:"🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escócia", away:"🇲🇦 Marrocos", date:"19/06", time:"19:00" },
+        { id:16, group:"C", home:"🇧🇷 Brasil", away:"🇭🇹 Haiti", date:"19/06", time:"21:30" },
+        { id:17, group:"C", home:"🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escócia", away:"🇧🇷 Brasil", date:"24/06", time:"19:00" },
+        { id:18, group:"C", home:"🇲🇦 Marrocos", away:"🇭🇹 Haiti", date:"24/06", time:"19:00" },
+        { id:19, group:"D", home:"🇺🇸 EUA", away:"🇵🇾 Paraguai", date:"12/06", time:"22:00" },
+        { id:20, group:"D", home:"🇦🇺 Austrália", away:"🇹🇷 Turquia", date:"13/06", time:"01:00" },
+        { id:21, group:"D", home:"🇺🇸 EUA", away:"🇦🇺 Austrália", date:"19/06", time:"16:00" },
+        { id:22, group:"D", home:"🇹🇷 Turquia", away:"🇵🇾 Paraguai", date:"19/06", time:"00:00" },
+        { id:23, group:"D", home:"🇹🇷 Turquia", away:"🇺🇸 EUA", date:"25/06", time:"23:00" },
+        { id:24, group:"D", home:"🇵🇾 Paraguai", away:"🇦🇺 Austrália", date:"25/06", time:"23:00" },
+        { id:25, group:"E", home:"🇩🇪 Alemanha", away:"🇨🇼 Curaçao", date:"14/06", time:"14:00" },
+        { id:26, group:"E", home:"🇨🇮 C. Marfim", away:"🇪🇨 Equador", date:"14/06", time:"20:00" },
+        { id:27, group:"E", home:"🇩🇪 Alemanha", away:"🇨🇮 C. Marfim", date:"20/06", time:"17:00" },
+        { id:28, group:"E", home:"🇪🇨 Equador", away:"🇨🇼 Curaçao", date:"20/06", time:"21:00" },
+        { id:29, group:"E", home:"🇨🇼 Curaçao", away:"🇨🇮 C. Marfim", date:"25/06", time:"17:00" },
+        { id:30, group:"E", home:"🇪🇨 Equador", away:"🇩🇪 Alemanha", date:"25/06", time:"17:00" },
+        { id:31, group:"F", home:"🇳🇱 Holanda", away:"🇯🇵 Japão", date:"14/06", time:"17:00" },
+        { id:32, group:"F", home:"🇸🇪 Suécia", away:"🇹🇳 Tunísia", date:"14/06", time:"23:00" },
+        { id:33, group:"F", home:"🇳🇱 Holanda", away:"🇸🇪 Suécia", date:"20/06", time:"14:00" },
+        { id:34, group:"F", home:"🇹🇳 Tunísia", away:"🇯🇵 Japão", date:"20/06", time:"01:00" },
+        { id:35, group:"F", home:"🇯🇵 Japão", away:"🇸🇪 Suécia", date:"25/06", time:"20:00" },
+        { id:36, group:"F", home:"🇹🇳 Tunísia", away:"🇳🇱 Holanda", date:"25/06", time:"20:00" },
+        { id:37, group:"G", home:"🇧🇪 Bélgica", away:"🇪🇬 Egito", date:"15/06", time:"16:00" },
+        { id:38, group:"G", home:"🇮🇷 Irã", away:"🇳🇿 N. Zelândia", date:"15/06", time:"22:00" },
+        { id:39, group:"G", home:"🇧🇪 Bélgica", away:"🇮🇷 Irã", date:"21/06", time:"16:00" },
+        { id:40, group:"G", home:"🇳🇿 N. Zelândia", away:"🇪🇬 Egito", date:"21/06", time:"22:00" },
+        { id:41, group:"G", home:"🇪🇬 Egito", away:"🇮🇷 Irã", date:"26/06", time:"00:00" },
+        { id:42, group:"G", home:"🇳🇿 N. Zelândia", away:"🇧🇪 Bélgica", date:"26/06", time:"00:00" },
+        { id:43, group:"H", home:"🇪🇸 Espanha", away:"🇨🇻 Cabo Verde", date:"15/06", time:"13:00" },
+        { id:44, group:"H", home:"🇸🇦 A. Saudita", away:"🇺🇾 Uruguai", date:"15/06", time:"19:00" },
+        { id:45, group:"H", home:"🇪🇸 Espanha", away:"🇸🇦 A. Saudita", date:"21/06", time:"13:00" },
+        { id:46, group:"H", home:"🇺🇾 Uruguai", away:"🇨🇻 Cabo Verde", date:"21/06", time:"19:00" },
+        { id:47, group:"H", home:"🇨🇻 Cabo Verde", away:"🇸🇦 A. Saudita", date:"26/06", time:"21:00" },
+        { id:48, group:"H", home:"🇺🇾 Uruguai", away:"🇪🇸 Espanha", date:"26/06", time:"21:00" },
+        { id:49, group:"I", home:"🇫🇷 França", away:"🇸🇳 Senegal", date:"16/06", time:"16:00" },
+        { id:50, group:"I", home:"🇮🇶 Iraque", away:"🇳🇴 Noruega", date:"16/06", time:"19:00" },
+        { id:51, group:"I", home:"🇫🇷 França", away:"🇮🇶 Iraque", date:"22/06", time:"18:00" },
+        { id:52, group:"I", home:"🇳🇴 Noruega", away:"🇸🇳 Senegal", date:"22/06", time:"21:00" },
+        { id:53, group:"I", home:"🇳🇴 Noruega", away:"🇫🇷 França", date:"26/06", time:"16:00" },
+        { id:54, group:"I", home:"🇸🇳 Senegal", away:"🇮🇶 Iraque", date:"26/06", time:"16:00" },
+        { id:55, group:"J", home:"🇦🇷 Argentina", away:"🇩🇿 Argélia", date:"16/06", time:"22:00" },
+        { id:56, group:"J", home:"🇦🇹 Áustria", away:"🇯🇴 Jordânia", date:"16/06", time:"01:00" },
+        { id:57, group:"J", home:"🇦🇷 Argentina", away:"🇦🇹 Áustria", date:"22/06", time:"14:00" },
+        { id:58, group:"J", home:"🇯🇴 Jordânia", away:"🇩🇿 Argélia", date:"22/06", time:"00:00" },
+        { id:59, group:"J", home:"🇩🇿 Argélia", away:"🇦🇹 Áustria", date:"27/06", time:"23:00" },
+        { id:60, group:"J", home:"🇯🇴 Jordânia", away:"🇦🇷 Argentina", date:"27/06", time:"23:00" },
+        { id:61, group:"K", home:"🇵🇹 Portugal", away:"🇨🇩 RD Congo", date:"17/06", time:"14:00" },
+        { id:62, group:"K", home:"🇺🇿 Uzbequistão", away:"🇨🇴 Colômbia", date:"17/06", time:"23:00" },
+        { id:63, group:"K", home:"🇵🇹 Portugal", away:"🇺🇿 Uzbequistão", date:"23/06", time:"14:00" },
+        { id:64, group:"K", home:"🇨🇴 Colômbia", away:"🇨🇩 RD Congo", date:"23/06", time:"23:00" },
+        { id:65, group:"K", home:"🇨🇴 Colômbia", away:"🇵🇹 Portugal", date:"27/06", time:"20:30" },
+        { id:66, group:"K", home:"🇨🇩 RD Congo", away:"🇺🇿 Uzbequistão", date:"27/06", time:"20:30" },
+        { id:67, group:"L", home:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra", away:"🇭🇷 Croácia", date:"17/06", time:"17:00" },
+        { id:68, group:"L", home:"🇬🇭 Gana", away:"🇵🇦 Panamá", date:"17/06", time:"20:00" },
+        { id:69, group:"L", home:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra", away:"🇬🇭 Gana", date:"23/06", time:"17:00" },
+        { id:70, group:"L", home:"🇵🇦 Panamá", away:"🇭🇷 Croácia", date:"23/06", time:"20:00" },
+        { id:71, group:"L", home:"🇵🇦 Panamá", away:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra", date:"27/06", time:"18:00" },
+        { id:72, group:"L", home:"🇭🇷 Croácia", away:"🇬🇭 Gana", date:"27/06", time:"18:00" },
     ];
 
     // Jogos do mata-mata (serão preenchidos com os times conforme avançam)
@@ -531,6 +531,7 @@
                 const rA = r ? r.away : '';
                 const groupLabel = m.group ? `<span style="font-size:0.65em; color:#7fba8a; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:10px; margin-left:4px;">Grupo ${m.group}</span>` : 
                     `<span style="font-size:0.65em; color:#f7d917; background:rgba(247,217,23,0.1); padding:1px 6px; border-radius:10px; margin-left:4px;">${phaseNames[m.phase] || ''}</span>`;
+                const timeLabel = m.time ? `<span style="font-size:0.7em; color:#a8d5b1;">🕐 ${m.time}</span>` : '';
                 html += `
                 <div class="match">
                     <div class="match-info">
@@ -542,7 +543,7 @@
                         </div>
                         <span class="match-away">${m.away}</span>
                     </div>
-                    <span class="match-date">${groupLabel}</span>
+                    <span class="match-date">${timeLabel} ${groupLabel}</span>
                 </div>`;
             });
             html += '</div></div>';
@@ -758,6 +759,7 @@
                 const pA = p ? p.away : '';
                 const groupLabel = m.group ? `<span style="font-size:0.65em; color:#7fba8a; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:10px;">Grupo ${m.group}</span>` : 
                     `<span style="font-size:0.65em; color:#f7d917; background:rgba(247,217,23,0.1); padding:1px 6px; border-radius:10px;">${phaseNames[m.phase] || ''}</span>`;
+                const timeLabel = m.time ? `<span style="font-size:0.7em; color:#a8d5b1;">🕐 ${m.time}</span>` : '';
                 html += `
                 <div class="match">
                     <div class="match-info">
@@ -769,7 +771,7 @@
                         </div>
                         <span class="match-away">${m.away}</span>
                     </div>
-                    <span class="match-date">${groupLabel}</span>
+                    <span class="match-date">${timeLabel} ${groupLabel}</span>
                 </div>`;
             });
             html += '</div></div>';
