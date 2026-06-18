@@ -172,9 +172,9 @@
         <div id="resultados" class="section active">
             <div class="legenda">
                 <h3>📌 Pontuação</h3>
-                <p><span class="pts">20 pts</span> — Placar exato</p>
-                <p><span class="pts">10 pts</span> — Acertou o vencedor (ou empate)</p>
-                <p><span class="pts">5 pts</span> — Acertou gols de um dos times</p>
+                <p><span class="pts">20 pts</span> — Na Mosca 🎯 (Placar exato)</p>
+                <p><span class="pts">10 pts</span> — Antenado ✓ (Acertou o vencedor ou empate)</p>
+                <p><span class="pts">5 pts</span> — Melhor que Nada ½ (Acertou gols de um dos times)</p>
                 <p><span class="pts">0 pts</span> — Errou tudo</p>
             </div>
             <p style="color:#a8d5b1; margin-bottom:12px; font-size:0.85em;">🔒 Somente o admin pode alterar resultados oficiais.</p>
@@ -269,15 +269,15 @@
                 <div style="margin-bottom:20px;">
                     <h4 style="color:#f7d917; margin-bottom:8px;">📌 Pontuação</h4>
                     <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6;">
-                        <strong style="color:#f7d917;">20 pontos</strong> — Acertou o placar exato<br>
+                        <strong style="color:#f7d917;">20 pontos — "Na Mosca" 🎯</strong> — Acertou o placar exato<br>
                         <em style="color:#7fba8a;">Ex: Você apostou 2x1 e o resultado foi 2x1</em>
                     </p>
                     <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6; margin-top:6px;">
-                        <strong style="color:#f7d917;">10 pontos</strong> — Acertou o vencedor (ou empate), mas errou o placar<br>
+                        <strong style="color:#f7d917;">10 pontos — "Antenado" ✓</strong> — Acertou o vencedor (ou empate), mas errou o placar<br>
                         <em style="color:#7fba8a;">Ex: Você apostou 3x1 e o resultado foi 2x0 (acertou que o time da casa venceu)</em>
                     </p>
                     <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6; margin-top:6px;">
-                        <strong style="color:#f7d917;">5 pontos</strong> — Acertou os gols de um dos times<br>
+                        <strong style="color:#f7d917;">5 pontos — "Melhor que Nada" ½</strong> — Acertou os gols de um dos times<br>
                         <em style="color:#7fba8a;">Ex: Você apostou 2x1 e o resultado foi 2x0 (acertou os 2 gols do time da casa)</em>
                     </p>
                     <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6; margin-top:6px;">
@@ -333,10 +333,10 @@
                 <div style="margin-bottom:20px;">
                     <h4 style="color:#f7d917; margin-bottom:8px;">🏆 Como funciona o Ranking?</h4>
                     <p style="color:#c8e6c9; font-size:0.9em; line-height:1.6;">
-                        Na aba <strong>🏆 Ranking</strong> você vê a classificação de todos os apostadores, ordenada por pontuação. Os ícones indicam:<br><br>
-                        🎯 = Placares exatos acertados<br>
-                        ✓ = Vencedores acertados<br>
-                        ½ = Gols parciais acertados<br><br>
+                        Na aba <strong>🏆 Ranking</strong> você vê a classificação de todos os apostadores, ordenada por pontuação. Em caso de empate, o desempate segue a ordem: Na Mosca → Antenado → Melhor que Nada. Os ícones indicam:<br><br>
+                        🎯 = Na Mosca (Placares exatos acertados)<br>
+                        ✓ = Antenado (Vencedores acertados)<br>
+                        ½ = Melhor que Nada (Gols parciais acertados)<br><br>
                         Use o filtro de grupo para ver o ranking separado por grupo (Família, Amigos, etc.)
                     </p>
                 </div>
@@ -471,7 +471,7 @@
         { id:53, group:"I", home:"🇳🇴 Noruega", away:"🇫🇷 França", date:"26/06", time:"16:00" },
         { id:54, group:"I", home:"🇸🇳 Senegal", away:"🇮🇶 Iraque", date:"26/06", time:"16:00" },
         { id:55, group:"J", home:"🇦🇷 Argentina", away:"🇩🇿 Argélia", date:"16/06", time:"22:00" },
-        { id:56, group:"J", home:"🇦🇹 Áustria", away:"🇯🇴 Jordânia", date:"17/06", time:"01:00" },
+        { id:56, group:"J", home:"🇦🇹 Áustria", away:"🇯🇴 Jordânia", date:"16/06", time:"01:00" },
         { id:57, group:"J", home:"🇦🇷 Argentina", away:"🇦🇹 Áustria", date:"22/06", time:"14:00" },
         { id:58, group:"J", home:"🇯🇴 Jordânia", away:"🇩🇿 Argélia", date:"22/06", time:"00:00" },
         { id:59, group:"J", home:"🇩🇿 Argélia", away:"🇦🇹 Áustria", date:"27/06", time:"23:00" },
@@ -1077,7 +1077,13 @@
             ranking.push({ nome, totalPts, det });
         });
 
-        ranking.sort((a, b) => b.totalPts - a.totalPts);
+        ranking.sort((a, b) => {
+            if (b.totalPts !== a.totalPts) return b.totalPts - a.totalPts;
+            if (b.det.exatos !== a.det.exatos) return b.det.exatos - a.det.exatos;
+            if (b.det.vencedor !== a.det.vencedor) return b.det.vencedor - a.det.vencedor;
+            if (b.det.parcial !== a.det.parcial) return b.det.parcial - a.det.parcial;
+            return 0;
+        });
         let html = '';
         ranking.forEach((r, i) => {
             const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}º`;
