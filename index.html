@@ -1069,7 +1069,8 @@
             matches.forEach(m => {
                 const r = results[m.id], p = pp[m.id];
                 if (!r || !p) return;
-                const rH = r.home, rA = r.away, pH = p.home, pA = p.away;
+                const rH = Number(r.home), rA = Number(r.away), pH = Number(p.home), pA = Number(p.away);
+                if (isNaN(rH) || isNaN(rA) || isNaN(pH) || isNaN(pA)) return;
                 if (pH === rH && pA === rA) { totalPts += 20; det.exatos++; }
                 else if ((rH > rA && pH > pA) || (rH < rA && pH < pA) || (rH === rA && pH === pA)) { totalPts += 10; det.vencedor++; }
                 else if (pH === rH || pA === rA) { totalPts += 5; det.parcial++; }
