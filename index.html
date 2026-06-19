@@ -176,6 +176,7 @@
                 <p><span class="pts">10 pts</span> — Antenado ✓ (Acertou o vencedor ou empate)</p>
                 <p><span class="pts">5 pts</span> — Melhor que Nada ½ (Acertou gols de um dos times)</p>
                 <p><span class="pts">0 pts</span> — Errou tudo</p>
+                <p style="margin-top:8px; font-size:0.8em; color:#7fba8a;">💡 Antenado + Melhor que Nada são cumulativos! Máx: 15 pts (acertou vencedor + gols parciais)</p>
             </div>
             <p style="color:#a8d5b1; margin-bottom:12px; font-size:0.85em;">🔒 Somente o admin pode alterar resultados oficiais.</p>
             <div id="matches-container"><div class="loading">Carregando jogos...</div></div>
@@ -284,10 +285,11 @@
                         <strong style="color:#f7d917;">0 pontos</strong> — Não acertou nada<br>
                         <em style="color:#7fba8a;">Ex: Você apostou 2x1 e o resultado foi 0x3</em>
                     </p>
-                    <p style="color:#e57373; font-size:0.85em; line-height:1.6; margin-top:12px; padding:10px; background:rgba(229,115,115,0.1); border-radius:8px;">
-                        ⚠️ <strong>Importante:</strong> A pontuação NÃO é somada! O sistema verifica na ordem (exato → vencedor → gols parciais) e para no primeiro que acertar.<br><br>
-                        <strong>Exemplo:</strong> Resultado real = Brasil 2x1 Marrocos. Seu palpite = Brasil 3x1 Marrocos.<br>
-                        Você acertou o vencedor (Brasil) E acertou o 1 gol do Marrocos, mas <strong>não ganha 10+5</strong>. Ganha apenas <strong>10 pontos</strong> (acertou o vencedor, que é a regra de maior valor aplicável).
+                    <p style="color:#81c784; font-size:0.85em; line-height:1.6; margin-top:12px; padding:10px; background:rgba(76,175,80,0.1); border-radius:8px;">
+                        💡 <strong>Importante:</strong> As pontuações "Antenado" e "Melhor que Nada" são <strong>cumulativas</strong>! Se você acertou o vencedor E acertou os gols de um dos times, ganha 10+5 = <strong>15 pontos</strong>.<br><br>
+                        <strong>Exemplo:</strong> Resultado real = Brasil 3x0 Haiti. Seu palpite = Brasil 4x0 Haiti.<br>
+                        Você acertou o vencedor (Brasil) = 10 pts, E acertou o 0 do Haiti = +5 pts. Total: <strong>15 pontos</strong>.<br><br>
+                        ⚠️ O "Na Mosca" (20 pts) NÃO acumula com os outros — se acertou o placar exato, ganha só os 20 pts.
                     </p>
                 </div>
 
@@ -1072,8 +1074,12 @@
                 const rH = Number(r.home), rA = Number(r.away), pH = Number(p.home), pA = Number(p.away);
                 if (isNaN(rH) || isNaN(rA) || isNaN(pH) || isNaN(pA)) return;
                 if (pH === rH && pA === rA) { totalPts += 20; det.exatos++; }
-                else if ((rH > rA && pH > pA) || (rH < rA && pH < pA) || (rH === rA && pH === pA)) { totalPts += 10; det.vencedor++; }
-                else if (pH === rH || pA === rA) { totalPts += 5; det.parcial++; }
+                else {
+                    let acertouVencedor = (rH > rA && pH > pA) || (rH < rA && pH < pA) || (rH === rA && pH === pA);
+                    let acertouParcial = (pH === rH || pA === rA);
+                    if (acertouVencedor) { totalPts += 10; det.vencedor++; }
+                    if (acertouParcial) { totalPts += 5; det.parcial++; }
+                }
             });
             ranking.push({ nome, totalPts, det });
         });
