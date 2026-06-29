@@ -959,7 +959,7 @@
         const db = firebase.database();
         db.ref('admin').on('value', snap => { adminPass = snap.val() || ''; updateAdminStatus(); });
         db.ref('apostadores').on('value', snap => { apostadores = snap.val() || {}; renderApostadores(); updateApostadorSelect(); });
-        db.ref('results').on('value', snap => { results = snap.val() || {}; renderMatches(); calcularRanking(); renderBracket(); });
+        db.ref('results').on('value', snap => { results = snap.val() || {}; renderMatches(); calcularRanking(); renderBracket(); autoAdvanceTeams(results); });
         db.ref('palpites').on('value', snap => { palpites = snap.val() || {}; calcularRanking(); });
         db.ref('grupos').on('value', snap => { grupos = snap.val() || {}; renderGrupos(); updateGrupoSelects(); });
         db.ref('apostadorGrupos').on('value', snap => { apostadorGrupos = snap.val() || {}; renderApostadores(); calcularRanking(); });
@@ -1185,9 +1185,9 @@
     };
 
     function getWinnerAndLoser(matchId, resultsData) {
-        const r = resultsData[matchId];
+        const r = resultsData[matchId] || resultsData[String(matchId)];
         if (!r || r.home === '' || r.away === '') return { winner: null, loser: null };
-        const m = matches.find(x => x.id === matchId);
+        const m = matches.find(x => x.id === Number(matchId));
         if (!m) return { winner: null, loser: null };
         const homeGoals = Number(r.home);
         const awayGoals = Number(r.away);
@@ -1204,9 +1204,10 @@
         const updates = {};
         let changed = false;
 
-        Object.keys(advanceMap).forEach(srcId => {
+        Object.keys(advanceMap).forEach(srcIdStr => {
+            const srcId = Number(srcIdStr);
             const mapping = advanceMap[srcId];
-            const { winner, loser } = getWinnerAndLoser(Number(srcId), resultsData);
+            const { winner, loser } = getWinnerAndLoser(srcId, resultsData);
 
             if (winner) {
                 // Jogo com vencedor e perdedor (semi → final e 3º lugar)
