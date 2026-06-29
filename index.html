@@ -1763,7 +1763,7 @@
     }
 
     function renderBracketMatch(m) {
-        const r = results[m.id];
+        const r = results[m.id] || results[String(m.id)];
         const hasResult = r && r.home !== '' && r.away !== '';
         const homeGoals = hasResult ? Number(r.home) : null;
         const awayGoals = hasResult ? Number(r.away) : null;
@@ -1775,8 +1775,9 @@
         const matchClass = hasResult ? 'has-result' : '';
 
         // Use knockoutTeams data if available, otherwise use match's current data
-        const homeTeam = (knockoutTeams[m.id] && knockoutTeams[m.id].home) || m.home;
-        const awayTeam = (knockoutTeams[m.id] && knockoutTeams[m.id].away) || m.away;
+        const kt = knockoutTeams[m.id] || knockoutTeams[String(m.id)];
+        const homeTeam = (kt && kt.home) || m.home;
+        const awayTeam = (kt && kt.away) || m.away;
 
         return `
         <div class="bracket-match ${matchClass}">
@@ -1794,7 +1795,7 @@
 
     function renderChampionBox() {
         const finalMatch = knockoutMatches.find(m => m.phase === 'final');
-        const r = results[finalMatch.id];
+        const r = results[finalMatch.id] || results[String(finalMatch.id)];
         if (!r || r.home === '' || r.away === '') {
             return `<div style="text-align:center; padding:20px; color:var(--cor-texto-muted); font-size:0.9em;">
                 <div style="font-size:2em; margin-bottom:8px;">👑</div>
