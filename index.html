@@ -553,8 +553,9 @@
                 <p><span class="pts">20 pts</span> — Na Mosca 🎯 (Placar exato)</p>
                 <p><span class="pts">10 pts</span> — Antenado ✓ (Acertou o vencedor ou empate)</p>
                 <p><span class="pts">5 pts</span> — Melhor que Nada ½ (Acertou gols de um dos times)</p>
+                <p><span class="pts">10 pts</span> — Pênaltis ⚡ (Acertou quem avança nos pênaltis)</p>
                 <p><span class="pts">0 pts</span> — Errou tudo</p>
-                <p style="margin-top:8px; font-size:0.8em; color:var(--cor-texto-muted);">💡 Antenado + Melhor que Nada são cumulativos! Máx: 15 pts (acertou vencedor + gols parciais)</p>
+                <p style="margin-top:8px; font-size:0.8em; color:var(--cor-texto-muted);">💡 Antenado + Melhor que Nada são cumulativos! Máx: 15 pts. Bônus de pênaltis é independente e soma com qualquer outra pontuação do jogo.</p>
             </div>
             <p style="color:var(--cor-texto-suave); margin-bottom:12px; font-size:0.85em;">🔒 Somente o admin pode alterar resultados oficiais.</p>
             <div id="matches-container" aria-label="Lista de jogos"><div class="loading">Carregando jogos...</div></div>
@@ -1207,6 +1208,20 @@
         }
     }
 
+    // Palpite de pênaltis do apostador (salva localmente até o savePalpites)
+    let palpitePenaltis = {}; // { matchId: "home" ou "away" } temporário
+    
+    function setPalpitePenalti(matchId, side, btnEl) {
+        const current = palpitePenaltis[matchId] || '';
+        const newValue = (current === side) ? '' : side;
+        palpitePenaltis[matchId] = newValue;
+        
+        // Atualiza visual
+        const row = btnEl.parentElement;
+        row.querySelectorAll('.penaltis-btn').forEach(b => b.classList.remove('selected'));
+        if (newValue) btnEl.classList.add('selected');
+    }
+
     function saveResults() {
         const data = {};
         let count = 0;
@@ -1555,6 +1570,13 @@
         let totalPreenchidos = 0;
         const totalJogos = matches.length;
 
+        // Carregar palpites de pênaltis existentes
+        palpitePenaltis = {};
+        Object.keys(pp).forEach(mid => {
+            const p = pp[mid];
+            if (p && p.penalti) palpitePenaltis[mid] = p.penalti;
+        });
+
         grouped.forEach(({ date, matches: dayMatches }) => {
             const label = getDateLabel(date);
             const dateId = 'pd_' + date.replace('/', '');
@@ -1565,7 +1587,7 @@
                 </div>
                 <div class="group-matches collapsed" id="${dateId}" role="region">`;
             dayMatches.forEach(m => {
-                const p = pp[m.id];
+                const p = pp[m.id] || pp[String(m.id)];
                 const pH = p ? p.home : '';
                 const pA = p ? p.away : '';
                 if (pH !== '' && pA !== '') totalPreenchidos++;
@@ -1573,6 +1595,21 @@
                 const locked = !loggedAsAdmin && isMatchLocked(m);
                 const lockAttr = locked ? 'disabled' : '';
                 const lockIcon = locked ? '<span style="font-size:0.65em; color:var(--cor-erro);">🔒 Encerrado</span> ' : '';
+
+                // Seletor de pênaltis para mata-mata
+                let penPalpiteHtml = '';
+                if (!m.group) {
+                    const penChoice = palpitePenaltis[m.id] || palpitePenaltis[String(m.id)] || '';
+                    const homeSelP = penChoice === 'home' ? 'selected' : '';
+                    const awaySelP = penChoice === 'away' ? 'selected' : '';
+                    const disabledP = locked ? 'disabled' : '';
+                    penPalpiteHtml = `
+                    <div class="penaltis-row" style="background:rgba(30,136,229,0.1); border-color:rgba(30,136,229,0.3);">
+                        <span style="color:var(--cor-azul);">⚡ Se pênaltis, quem avança?</span>
+                        <button class="penaltis-btn ${homeSelP}" ${disabledP} onclick="setPalpitePenalti(${m.id}, 'home', this)" aria-label="Palpite pênaltis ${sanitize(m.home)}">${m.home.split(' ').pop()}</button>
+                        <button class="penaltis-btn ${awaySelP}" ${disabledP} onclick="setPalpitePenalti(${m.id}, 'away', this)" aria-label="Palpite pênaltis ${sanitize(m.away)}">${m.away.split(' ').pop()}</button>
+                    </div>`;
+                }
 
                 html += `
                 <div class="match">
@@ -1586,6 +1623,7 @@
                         <span class="match-away">${m.away}</span>
                     </div>
                     <span class="match-date">${lockIcon}${timeLabel} ${getMatchLabel(m)}</span>
+                    ${penPalpiteHtml}
                 </div>`;
             });
             html += '</div></div>';
@@ -1626,7 +1664,11 @@
                 if (!loggedAsAdmin && isMatchLocked(m)) {
                     if (palpitesAntigos[m.id]) { data[m.id] = palpitesAntigos[m.id]; count++; }
                 } else {
-                    data[m.id] = { home: parseInt(hEl.value), away: parseInt(aEl.value) };
+                    const palpiteData = { home: parseInt(hEl.value), away: parseInt(aEl.value) };
+                    // Inclui palpite de pênaltis se existir (apenas mata-mata)
+                    const penVal = palpitePenaltis[m.id] || palpitePenaltis[String(m.id)];
+                    if (!m.group && penVal) palpiteData.penalti = penVal;
+                    data[m.id] = palpiteData;
                     count++;
                 }
             } else if (palpitesAntigos[m.id] && !loggedAsAdmin && isMatchLocked(m)) {
@@ -1702,11 +1744,12 @@
 
         const ranking = nomes.map(nome => {
             let totalPts = 0;
-            const det = { exatos: 0, vencedor: 0, parcial: 0 };
+            const det = { exatos: 0, vencedor: 0, parcial: 0, penaltis: 0 };
             const pp = palpites[nome] || {};
 
             matches.forEach(m => {
-                const r = results[m.id], p = pp[m.id];
+                const r = results[m.id] || results[String(m.id)];
+                const p = pp[m.id] || pp[String(m.id)];
                 if (!r || !p) return;
                 const rH = Number(r.home), rA = Number(r.away);
                 const pH = Number(p.home), pA = Number(p.away);
@@ -1721,6 +1764,16 @@
                     if (acertouVencedor) { totalPts += 10; det.vencedor++; }
                     if (acertouParcial) { totalPts += 5; det.parcial++; }
                 }
+
+                // Bônus pênaltis: +10 se acertou quem avança nos pênaltis
+                if (!m.group && rH === rA) {
+                    const penReal = penaltis[m.id] || penaltis[String(m.id)];
+                    const penPalpite = p.penalti;
+                    if (penReal && penPalpite && penReal === penPalpite) {
+                        totalPts += 10;
+                        det.penaltis++;
+                    }
+                }
             });
 
             return { nome, totalPts, det };
@@ -1730,6 +1783,7 @@
             if (b.totalPts !== a.totalPts) return b.totalPts - a.totalPts;
             if (b.det.exatos !== a.det.exatos) return b.det.exatos - a.det.exatos;
             if (b.det.vencedor !== a.det.vencedor) return b.det.vencedor - a.det.vencedor;
+            if (b.det.penaltis !== a.det.penaltis) return b.det.penaltis - a.det.penaltis;
             return b.det.parcial - a.det.parcial;
         });
 
@@ -1745,7 +1799,7 @@
             <div class="ranking-item" role="listitem">
                 <span class="ranking-pos">${medal}</span>
                 <span class="ranking-name">${sanitize(r.nome)}</span>
-                <span class="ranking-details">${r.det.exatos}🎯 ${r.det.vencedor}✓ ${r.det.parcial}½</span>
+                <span class="ranking-details">${r.det.exatos}🎯 ${r.det.vencedor}✓ ${r.det.parcial}½ ${r.det.penaltis}⚡</span>
                 <span class="ranking-pts">${r.totalPts} pts</span>
             </div>`;
         });
