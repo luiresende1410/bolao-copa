@@ -357,6 +357,38 @@
             transition: width 0.5s ease;
         }
 
+        /* Penaltis selector */
+        .penaltis-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 4px;
+            padding: 4px 8px;
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            border-radius: var(--radius-sm);
+            font-size: 0.75em;
+        }
+        .penaltis-row span { color: var(--cor-erro); font-weight: bold; }
+        .penaltis-btn {
+            padding: 3px 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 4px;
+            background: rgba(255,255,255,0.08);
+            color: var(--cor-texto);
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all var(--transicao);
+        }
+        .penaltis-btn:hover { background: rgba(255,255,255,0.15); }
+        .penaltis-btn.selected {
+            background: var(--cor-dourado);
+            color: var(--cor-fundo);
+            border-color: var(--cor-dourado);
+            font-weight: bold;
+        }
+
         /* Bracket / Chaveamento */
         .bracket-phase-selector {
             display: flex;
@@ -953,6 +985,7 @@
     let knockoutTeams = {};
     let grupos = {};
     let apostadorGrupos = {};
+    let penaltis = {}; // { matchId: "home" ou "away" } - quem avançou nos pênaltis
 
     // ===== INIT =====
     function initApp() {
@@ -963,6 +996,7 @@
         db.ref('palpites').on('value', snap => { palpites = snap.val() || {}; calcularRanking(); });
         db.ref('grupos').on('value', snap => { grupos = snap.val() || {}; renderGrupos(); updateGrupoSelects(); });
         db.ref('apostadorGrupos').on('value', snap => { apostadorGrupos = snap.val() || {}; renderApostadores(); calcularRanking(); });
+        db.ref('penaltis').on('value', snap => { penaltis = snap.val() || {}; renderMatches(); renderBracket(); autoAdvanceTeams(results); });
         db.ref('knockoutTeams').on('value', snap => {
             knockoutTeams = snap.val() || {};
             knockoutMatches.forEach(m => {
@@ -1106,10 +1140,25 @@
                 </div>
                 <div class="group-matches collapsed" id="${dateId}" role="region">`;
             dayMatches.forEach(m => {
-                const r = results[m.id];
+                const r = results[m.id] || results[String(m.id)];
                 const rH = r ? r.home : '';
                 const rA = r ? r.away : '';
                 const timeLabel = m.time ? `<span style="font-size:0.7em; color:var(--cor-texto-suave);">🕐 ${m.time}</span>` : '';
+                
+                // Verifica se é mata-mata e se precisa mostrar seletor de pênaltis
+                let penaltisHtml = '';
+                if (!m.group && rH !== '' && rA !== '' && Number(rH) === Number(rA)) {
+                    const pen = penaltis[m.id] || penaltis[String(m.id)] || '';
+                    const homeSelected = pen === 'home' ? 'selected' : '';
+                    const awaySelected = pen === 'away' ? 'selected' : '';
+                    penaltisHtml = `
+                    <div class="penaltis-row">
+                        <span>⚡ Pênaltis:</span>
+                        <button class="penaltis-btn ${homeSelected}" onclick="setPenalti(${m.id}, 'home', this)" aria-label="Avançou ${sanitize(m.home)}">${m.home.split(' ').pop()}</button>
+                        <button class="penaltis-btn ${awaySelected}" onclick="setPenalti(${m.id}, 'away', this)" aria-label="Avançou ${sanitize(m.away)}">${m.away.split(' ').pop()}</button>
+                    </div>`;
+                }
+
                 html += `
                 <div class="match">
                     <div class="match-info">
@@ -1122,6 +1171,7 @@
                         <span class="match-away">${m.away}</span>
                     </div>
                     <span class="match-date">${timeLabel} ${getMatchLabel(m)}</span>
+                    ${penaltisHtml}
                 </div>`;
             });
             html += '</div></div>';
@@ -1137,6 +1187,24 @@
         el.classList.toggle('collapsed');
         arrow.classList.toggle('collapsed');
         titleEl.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false');
+    }
+
+    function setPenalti(matchId, side, btnEl) {
+        // Toggle: se já está selecionado, desmarca
+        const current = penaltis[matchId] || penaltis[String(matchId)] || '';
+        const newValue = (current === side) ? '' : side;
+        
+        // Atualiza visual imediato
+        const row = btnEl.parentElement;
+        row.querySelectorAll('.penaltis-btn').forEach(b => b.classList.remove('selected'));
+        if (newValue) btnEl.classList.add('selected');
+        
+        // Salva no Firebase (requer admin, mas vamos salvar direto pois o contexto já é admin)
+        if (newValue) {
+            firebase.database().ref('penaltis/' + matchId).set(newValue);
+        } else {
+            firebase.database().ref('penaltis/' + matchId).remove();
+        }
     }
 
     function saveResults() {
@@ -1192,11 +1260,18 @@
         const homeGoals = Number(r.home);
         const awayGoals = Number(r.away);
         if (isNaN(homeGoals) || isNaN(awayGoals)) return { winner: null, loser: null };
-        // No mata-mata, se empate, o time da casa avança (simplificação - pênaltis não são modelados)
-        if (homeGoals >= awayGoals) {
+        
+        if (homeGoals > awayGoals) {
             return { winner: m.home, loser: m.away };
-        } else {
+        } else if (awayGoals > homeGoals) {
             return { winner: m.away, loser: m.home };
+        } else {
+            // Empate: verifica quem avançou nos pênaltis
+            const pen = penaltis[matchId] || penaltis[String(matchId)];
+            if (pen === 'home') return { winner: m.home, loser: m.away };
+            if (pen === 'away') return { winner: m.away, loser: m.home };
+            // Sem definição de pênaltis ainda — não avança
+            return { winner: null, loser: null };
         }
     }
 
@@ -1767,12 +1842,26 @@
         const hasResult = r && r.home !== '' && r.away !== '';
         const homeGoals = hasResult ? Number(r.home) : null;
         const awayGoals = hasResult ? Number(r.away) : null;
-        const homeWin = hasResult && homeGoals >= awayGoals;
-        const awayWin = hasResult && awayGoals > homeGoals;
+        
+        // Determina vencedor considerando pênaltis
+        let homeWin = false, awayWin = false, isPenaltis = false;
+        if (hasResult) {
+            if (homeGoals > awayGoals) {
+                homeWin = true;
+            } else if (awayGoals > homeGoals) {
+                awayWin = true;
+            } else {
+                // Empate — verifica pênaltis
+                const pen = penaltis[m.id] || penaltis[String(m.id)];
+                if (pen === 'home') { homeWin = true; isPenaltis = true; }
+                else if (pen === 'away') { awayWin = true; isPenaltis = true; }
+            }
+        }
 
-        const homeClass = hasResult ? (homeWin ? 'winner' : 'loser') : '';
-        const awayClass = hasResult ? (awayWin ? 'winner' : 'loser') : '';
+        const homeClass = hasResult ? (homeWin ? 'winner' : (awayWin ? 'loser' : '')) : '';
+        const awayClass = hasResult ? (awayWin ? 'winner' : (homeWin ? 'loser' : '')) : '';
         const matchClass = hasResult ? 'has-result' : '';
+        const penLabel = isPenaltis ? ' <span style="font-size:0.8em; color:var(--cor-erro);">(pen)</span>' : '';
 
         // Use knockoutTeams data if available, otherwise use match's current data
         const kt = knockoutTeams[m.id] || knockoutTeams[String(m.id)];
@@ -1783,13 +1872,13 @@
         <div class="bracket-match ${matchClass}">
             <div class="bracket-team ${homeClass}">
                 <span class="bracket-team-name">${homeTeam}</span>
-                <span class="bracket-team-score">${hasResult ? homeGoals : '-'}</span>
+                <span class="bracket-team-score">${hasResult ? homeGoals : '-'}${homeWin && isPenaltis ? ' ⚡' : ''}</span>
             </div>
             <div class="bracket-team ${awayClass}">
                 <span class="bracket-team-name">${awayTeam}</span>
-                <span class="bracket-team-score">${hasResult ? awayGoals : '-'}</span>
+                <span class="bracket-team-score">${hasResult ? awayGoals : '-'}${awayWin && isPenaltis ? ' ⚡' : ''}</span>
             </div>
-            <div class="bracket-match-info">J${m.id} • ${getDateLabel(m.date)} ${m.time || ''}</div>
+            <div class="bracket-match-info">J${m.id} • ${getDateLabel(m.date)} ${m.time || ''}${penLabel}</div>
         </div>`;
     }
 
