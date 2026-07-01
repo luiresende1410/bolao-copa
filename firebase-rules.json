@@ -1,0 +1,63 @@
+{
+  "rules": {
+    "admin": {
+      ".read": true,
+      ".write": true
+    },
+    "apostadores": {
+      ".read": true,
+      "$nome": {
+        ".write": true,
+        ".validate": "newData.isString() && newData.val().length <= 128"
+      }
+    },
+    "palpites": {
+      ".read": true,
+      "$apostador": {
+        ".write": true,
+        "$matchId": {
+          ".validate": "newData.hasChildren(['home', 'away']) && newData.child('home').isNumber() && newData.child('away').isNumber() && newData.child('home').val() >= 0 && newData.child('home').val() <= 99 && newData.child('away').val() >= 0 && newData.child('away').val() <= 99"
+        }
+      }
+    },
+    "results": {
+      ".read": true,
+      ".write": true,
+      "$matchId": {
+        ".validate": "newData.hasChildren(['home', 'away']) && newData.child('home').isNumber() && newData.child('away').isNumber() && newData.child('home').val() >= 0 && newData.child('home').val() <= 99 && newData.child('away').val() >= 0 && newData.child('away').val() <= 99"
+      }
+    },
+    "penaltis": {
+      ".read": true,
+      ".write": true,
+      "$matchId": {
+        ".validate": "newData.isString() && (newData.val() === 'home' || newData.val() === 'away')"
+      }
+    },
+    "knockoutTeams": {
+      ".read": true,
+      ".write": true,
+      "$matchId": {
+        ".validate": "newData.hasChildren(['home', 'away'])"
+      }
+    },
+    "grupos": {
+      ".read": true,
+      ".write": true,
+      "$grupo": {
+        ".validate": "newData.isBoolean()"
+      }
+    },
+    "apostadorGrupos": {
+      ".read": true,
+      ".write": true,
+      "$apostador": {
+        ".validate": "newData.isString() && newData.val().length <= 25"
+      }
+    },
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}
