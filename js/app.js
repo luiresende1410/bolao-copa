@@ -283,7 +283,7 @@ function closeModal() {
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
         document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
-        document.querySelectorAll('[id^="modal-edit"], [id^="modal-change"], [id^="modal-knockout"]').forEach(m => {
+        document.querySelectorAll('[id^="modal-edit"], [id^="modal-change"], [id^="modal-knockout"], [id^="modal-resumo"]').forEach(m => {
             if (m.classList.contains('show')) m.remove();
         });
     }
@@ -888,6 +888,56 @@ function saveNewPassword() {
     });
 }
 
+// Calcula pontuação total, detalhamento e o histórico jogo-a-jogo de um apostador.
+// Reutilizado tanto pelo ranking (agregado) quanto pelo modal de resumo individual.
+function calcularDetalhesApostador(nome) {
+    let totalPts = 0;
+    const det = { exatos: 0, vencedor: 0, parcial: 0, penaltis: 0 };
+    const jogos = [];
+    const pp = palpites[nome] || {};
+
+    allMatches.forEach(m => {
+        const r = results[m.id] || results[String(m.id)];
+        const p = pp[m.id] || pp[String(m.id)];
+        if (!r || !p) return;
+        const rH = Number(r.home), rA = Number(r.away);
+        const pH = Number(p.home), pA = Number(p.away);
+        if (isNaN(rH) || isNaN(rA) || isNaN(pH) || isNaN(pA)) return;
+
+        let matchPts = 0;
+        let tag = '✗ Errou';
+        if (pH === rH && pA === rA) {
+            matchPts += 20;
+            det.exatos++;
+            tag = '🎯 Na Mosca';
+        } else {
+            const acertouVencedor = (rH > rA && pH > pA) || (rH < rA && pH < pA) || (rH === rA && pH === pA);
+            const acertouParcial = (pH === rH || pA === rA);
+            if (acertouVencedor) { matchPts += 10; det.vencedor++; }
+            if (acertouParcial) { matchPts += 5; det.parcial++; }
+            if (acertouVencedor && acertouParcial) tag = '✓ Antenado + ½ Melhor que Nada';
+            else if (acertouVencedor) tag = '✓ Antenado';
+            else if (acertouParcial) tag = '½ Melhor que Nada';
+        }
+
+        let penBonus = false;
+        if (!m.group && rH === rA) {
+            const penReal = penaltis[m.id] || penaltis[String(m.id)];
+            const penPalpite = p.penalti;
+            if (penReal && penPalpite && penReal === penPalpite) {
+                matchPts += 10;
+                det.penaltis++;
+                penBonus = true;
+            }
+        }
+
+        totalPts += matchPts;
+        jogos.push({ m, rH, rA, pH, pA, pts: matchPts, tag, penBonus });
+    });
+
+    return { totalPts, det, jogos };
+}
+
 // ===== RANKING =====
 function calcularRanking() {
     const container = $('ranking-container');
@@ -907,39 +957,7 @@ function calcularRanking() {
     }
 
     const ranking = nomes.map(nome => {
-        let totalPts = 0;
-        const det = { exatos: 0, vencedor: 0, parcial: 0, penaltis: 0 };
-        const pp = palpites[nome] || {};
-
-        allMatches.forEach(m => {
-            const r = results[m.id] || results[String(m.id)];
-            const p = pp[m.id] || pp[String(m.id)];
-            if (!r || !p) return;
-            const rH = Number(r.home), rA = Number(r.away);
-            const pH = Number(p.home), pA = Number(p.away);
-            if (isNaN(rH) || isNaN(rA) || isNaN(pH) || isNaN(pA)) return;
-
-            if (pH === rH && pA === rA) {
-                totalPts += 20;
-                det.exatos++;
-            } else {
-                const acertouVencedor = (rH > rA && pH > pA) || (rH < rA && pH < pA) || (rH === rA && pH === pA);
-                const acertouParcial = (pH === rH || pA === rA);
-                if (acertouVencedor) { totalPts += 10; det.vencedor++; }
-                if (acertouParcial) { totalPts += 5; det.parcial++; }
-            }
-
-            // Bônus pênaltis
-            if (!m.group && rH === rA) {
-                const penReal = penaltis[m.id] || penaltis[String(m.id)];
-                const penPalpite = p.penalti;
-                if (penReal && penPalpite && penReal === penPalpite) {
-                    totalPts += 10;
-                    det.penaltis++;
-                }
-            }
-        });
-
+        const { totalPts, det } = calcularDetalhesApostador(nome);
         return { nome, totalPts, det };
     });
 
@@ -960,7 +978,7 @@ function calcularRanking() {
     ranking.forEach((r, i) => {
         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`;
         html += `
-        <div class="ranking-item" role="listitem">
+        <div class="ranking-item" role="listitem" tabindex="0" onclick="showApostadorResumo('${sanitize(r.nome)}')" onkeypress="if(event.key==='Enter')showApostadorResumo('${sanitize(r.nome)}')" aria-label="Ver resumo de ${sanitize(r.nome)}">
             <span class="ranking-pos">${medal}</span>
             <span class="ranking-name">${sanitize(r.nome)}</span>
             <span class="ranking-details">${r.det.exatos}🎯 ${r.det.vencedor}✓ ${r.det.parcial}½ ${r.det.penaltis}⚡</span>
@@ -968,6 +986,60 @@ function calcularRanking() {
         </div>`;
     });
     container.innerHTML = html;
+}
+
+// ===== RESUMO DO APOSTADOR (modal ao clicar no card do ranking) =====
+function showApostadorResumo(nome) {
+    if (!apostadores[nome]) return;
+    const { totalPts, det, jogos } = calcularDetalhesApostador(nome);
+    const grupo = apostadorGrupos[nome] ? `<span style="font-size:0.75em; color:var(--cor-texto-muted);">👥 ${sanitize(apostadorGrupos[nome])}</span>` : '';
+
+    let jogosHtml = '';
+    if (jogos.length === 0) {
+        jogosHtml = '<p style="color:var(--cor-texto-suave); font-size:0.85em; text-align:center; padding:12px 0;">Nenhum jogo com palpite e resultado registrados ainda.</p>';
+    } else {
+        // Mostra os jogos mais recentes primeiro
+        jogosHtml = jogos.slice().reverse().map(j => {
+            const penInfo = j.penBonus ? ' <span style="color:var(--cor-dourado);">+10⚡</span>' : '';
+            const ptsColor = j.pts >= 20 ? 'var(--cor-dourado)' : j.pts > 0 ? 'var(--cor-sucesso)' : 'var(--cor-texto-muted)';
+            return `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:0.82em;">
+                <div style="flex:1; min-width:0;">
+                    <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${sanitize(j.m.home)} <strong>${j.rH}x${j.rA}</strong> ${sanitize(j.m.away)}</div>
+                    <div style="color:var(--cor-texto-muted); font-size:0.9em;">Palpite: ${j.pH}x${j.pA} — ${j.tag}${penInfo}</div>
+                </div>
+                <div style="font-weight:700; color:${ptsColor}; white-space:nowrap;">${j.pts} pts</div>
+            </div>`;
+        }).join('');
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay show';
+    overlay.id = 'modal-resumo-apostador';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'modal-resumo-title');
+    overlay.innerHTML = `
+    <div class="modal" style="max-width:480px;">
+        <h3 id="modal-resumo-title">📋 Resumo de ${sanitize(nome)}</h3>
+        ${grupo}
+        <div style="display:flex; gap:10px; margin:14px 0; flex-wrap:wrap;">
+            <div style="flex:1; min-width:90px; text-align:center; background:rgba(255,213,74,0.1); border-radius:var(--radius-sm); padding:10px;">
+                <div style="font-size:1.4em; font-weight:800; color:var(--cor-dourado);">${totalPts}</div>
+                <div style="font-size:0.72em; color:var(--cor-texto-muted);">pontos</div>
+            </div>
+            <div style="flex:1; min-width:90px; text-align:center; background:rgba(255,255,255,0.05); border-radius:var(--radius-sm); padding:10px;">
+                <div style="font-size:1.1em; font-weight:700;">${det.exatos}🎯 ${det.vencedor}✓</div>
+                <div style="font-size:0.72em; color:var(--cor-texto-muted);">${det.parcial}½ acertos • ${det.penaltis}⚡ pênaltis</div>
+            </div>
+        </div>
+        <h4 style="color:var(--cor-dourado); font-size:0.9em; margin-bottom:8px;">Últimos jogos</h4>
+        <div style="max-height:45vh; overflow-y:auto; margin-bottom:14px;">
+            ${jogosHtml}
+        </div>
+        <button class="btn btn-ghost" style="width:100%;" onclick="document.getElementById('modal-resumo-apostador').remove()">Fechar</button>
+    </div>`;
+    document.body.appendChild(overlay);
 }
 
 // ===== CHAVEAMENTO VISUAL =====

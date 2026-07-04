@@ -317,7 +317,9 @@ h1 {
     gap: 12px;
     transition: transform var(--transicao), box-shadow var(--transicao);
 }
+.ranking-item { cursor: pointer; }
 .ranking-item:hover { transform: translateX(4px); box-shadow: var(--sombra-sm); }
+.ranking-item:focus-visible { transform: translateX(4px); box-shadow: var(--sombra-sm); }
 .ranking-item:nth-child(1) { background: linear-gradient(135deg, #ffd54a, #f0b90b); color: #1a1400; border: none; box-shadow: 0 4px 16px rgba(255, 213, 74, 0.3); }
 .ranking-item:nth-child(2) { background: linear-gradient(135deg, #cbd5e1, #94a3b8); color: #1a1400; border: none; }
 .ranking-item:nth-child(3) { background: linear-gradient(135deg, #e0a56e, #a0522d); color: #1a1400; border: none; }
