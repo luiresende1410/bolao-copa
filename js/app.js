@@ -26,26 +26,76 @@ function toast(msg, type = 'success') {
     setTimeout(() => { el.remove(); }, 3000);
 }
 
+// Escapa TODOS os caracteres perigosos em HTML (texto E atributos).
+// Isso impede tanto XSS via innerHTML quanto "fuga" de atributos onclick="..."
+// quando um nome de apostador/grupo/time contém aspas simples ou duplas.
 function sanitize(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    return String(str).replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
 }
 
+// ===== HASH DE SENHA (PBKDF2 com salt por senha) =====
+// Formato armazenado: "pbkdf2$<iterações>$<saltHex>$<hashHex>"
+// Mantém compatibilidade com hashes antigos (SHA-256 puro, 64 hex chars, sem salt)
+// para não invalidar contas já cadastradas.
+const PBKDF2_ITERATIONS = 150000;
+
+function bufferToHex(buffer) {
+    return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function randomSaltHex(bytes = 16) {
+    const arr = new Uint8Array(bytes);
+    crypto.getRandomValues(arr);
+    return bufferToHex(arr);
+}
+
+function pbkdf2Hash(password, saltHex, iterations = PBKDF2_ITERATIONS) {
+    const encoder = new TextEncoder();
+    const saltBytes = new Uint8Array(saltHex.match(/.{2}/g).map(b => parseInt(b, 16)));
+    return crypto.subtle.importKey('raw', encoder.encode(password), { name: 'PBKDF2' }, false, ['deriveBits'])
+        .then(keyMaterial => crypto.subtle.deriveBits(
+            { name: 'PBKDF2', salt: saltBytes, iterations, hash: 'SHA-256' },
+            keyMaterial, 256
+        ))
+        .then(bits => bufferToHex(bits));
+}
+
+// Gera um novo hash (sempre no formato forte) para salvar uma senha nova/alterada.
 function hashPassword(password) {
-    // Hash SHA-256 via SubtleCrypto (disponível em todos os navegadores modernos)
+    if (!(window.crypto && window.crypto.subtle)) {
+        // Fallback extremamente raro (navegador sem SubtleCrypto)
+        return Promise.resolve('legacy$' + hashFallback(password));
+    }
+    const saltHex = randomSaltHex();
+    return pbkdf2Hash(password, saltHex).then(hashHex => `pbkdf2$${PBKDF2_ITERATIONS}$${saltHex}$${hashHex}`);
+}
+
+// Verifica uma senha digitada contra o valor armazenado, suportando os 3 formatos
+// possíveis: pbkdf2$..., legacy$... (fallback antigo) e SHA-256 puro sem salt (contas antigas).
+function verifyPassword(password, stored) {
+    if (!stored) return Promise.resolve(false);
+
+    if (stored.startsWith('pbkdf2$')) {
+        const [, iterStr, saltHex, hashHex] = stored.split('$');
+        return pbkdf2Hash(password, saltHex, parseInt(iterStr, 10)).then(computed => computed === hashHex);
+    }
+
+    if (stored.startsWith('legacy$')) {
+        return Promise.resolve(hashFallback(password) === stored.slice('legacy$'.length));
+    }
+
+    // Formato antigo: SHA-256 puro sem salt (64 caracteres hex)
     if (window.crypto && window.crypto.subtle) {
         const encoder = new TextEncoder();
-        return crypto.subtle.digest('SHA-256', encoder.encode(password)).then(buffer => {
-            return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-        });
+        return crypto.subtle.digest('SHA-256', encoder.encode(password)).then(buffer => bufferToHex(buffer) === stored);
     }
-    // Fallback melhorado usando múltiplas iterações
-    return Promise.resolve(hashFallback(password));
+    return Promise.resolve(hashFallback(password) === stored);
 }
 
 function hashFallback(str) {
-    // Fallback mais seguro com múltiplas passagens
+    // Fallback mais seguro com múltiplas passagens (só usado sem SubtleCrypto)
     let hash1 = 0, hash2 = 0;
     for (let i = 0; i < str.length; i++) {
         const char = str.charCodeAt(i);
@@ -81,7 +131,15 @@ if (firebaseConfig.apiKey === "COLE_AQUI") {
 } else {
     $('app-screen').style.display = 'block';
     firebase.initializeApp(firebaseConfig);
-    initApp();
+    // Autenticação anônima: exige que o cliente tenha uma sessão válida do Firebase Auth
+    // antes de ler/escrever no Realtime Database. Combinada com as regras em
+    // firebase-rules.json (".write": "auth != null"), isso impede que alguém escreva
+    // dados direto via REST sem nunca ter carregado a página/SDK do Firebase.
+    // Não substitui a verificação de senha (que continua sendo client-side), mas fecha
+    // a porta de escrita anônima irrestrita.
+    firebase.auth().signInAnonymously().then(initApp).catch(err => {
+        toast('Erro ao conectar: ' + err.message, 'error');
+    });
 }
 
 // Estrelas decorativas
@@ -204,8 +262,8 @@ function requestAdminAction(callback) {
 function confirmAdmin() {
     const input = $('modal-admin-input').value;
     if (!input) { toast('Digite a senha!', 'warning'); return; }
-    hashPassword(input).then(hashed => {
-        if (hashed === adminPass) {
+    verifyPassword(input, adminPass).then(ok => {
+        if (ok) {
             isAdminAuthenticated = true;
             closeModal();
             if (adminCallback) adminCallback();
@@ -286,21 +344,21 @@ function renderMatches() {
                 penaltisHtml = `
                 <div class="penaltis-row">
                     <span>⚡ Pênaltis:</span>
-                    <button class="penaltis-btn ${homeSelected}" onclick="setPenalti(${m.id}, 'home', this)" aria-label="Avançou ${sanitize(m.home)}">${m.home.split(' ').pop()}</button>
-                    <button class="penaltis-btn ${awaySelected}" onclick="setPenalti(${m.id}, 'away', this)" aria-label="Avançou ${sanitize(m.away)}">${m.away.split(' ').pop()}</button>
+                    <button class="penaltis-btn ${homeSelected}" onclick="setPenalti(${m.id}, 'home', this)" aria-label="Avançou ${sanitize(m.home)}">${sanitize(m.home.split(' ').pop())}</button>
+                    <button class="penaltis-btn ${awaySelected}" onclick="setPenalti(${m.id}, 'away', this)" aria-label="Avançou ${sanitize(m.away)}">${sanitize(m.away.split(' ').pop())}</button>
                 </div>`;
             }
 
             html += `
             <div class="match">
                 <div class="match-info">
-                    <span class="match-home">${m.home}</span>
+                    <span class="match-home">${sanitize(m.home)}</span>
                     <div class="match-score">
                         <input type="number" min="0" max="99" id="rh_${m.id}" value="${rH}" placeholder="-" aria-label="Gols ${sanitize(m.home)}">
                         <span class="x" aria-hidden="true">✕</span>
                         <input type="number" min="0" max="99" id="ra_${m.id}" value="${rA}" placeholder="-" aria-label="Gols ${sanitize(m.away)}">
                     </div>
-                    <span class="match-away">${m.away}</span>
+                    <span class="match-away">${sanitize(m.away)}</span>
                 </div>
                 <span class="match-date">${timeLabel} ${getMatchLabel(m)}</span>
                 ${penaltisHtml}
@@ -648,9 +706,12 @@ function loginPalpites() {
     if (!nome) { toast('Selecione um apostador!', 'warning'); return; }
     if (!senha) { toast('Digite a senha!', 'warning'); return; }
 
-    hashPassword(senha).then(hashed => {
-        const isAdmin = (hashed === adminPass && adminPass !== '');
-        if (!isAdmin && apostadores[nome] !== hashed) {
+    Promise.all([
+        verifyPassword(senha, adminPass),
+        verifyPassword(senha, apostadores[nome])
+    ]).then(([isAdminMatch, isUserMatch]) => {
+        const isAdmin = isAdminMatch && adminPass !== '';
+        if (!isAdmin && !isUserMatch) {
             toast('Senha incorreta!', 'error');
             return;
         }
@@ -711,21 +772,21 @@ function renderPalpites(nome) {
                 penPalpiteHtml = `
                 <div class="penaltis-row" style="background:rgba(30,136,229,0.1); border-color:rgba(30,136,229,0.3);">
                     <span style="color:var(--cor-azul);">⚡ Se pênaltis, quem avança?</span>
-                    <button class="penaltis-btn ${homeSelP}" ${disabledP} onclick="setPalpitePenalti(${m.id}, 'home', this)" aria-label="Palpite pênaltis ${sanitize(m.home)}">${m.home.split(' ').pop()}</button>
-                    <button class="penaltis-btn ${awaySelP}" ${disabledP} onclick="setPalpitePenalti(${m.id}, 'away', this)" aria-label="Palpite pênaltis ${sanitize(m.away)}">${m.away.split(' ').pop()}</button>
+                    <button class="penaltis-btn ${homeSelP}" ${disabledP} onclick="setPalpitePenalti(${m.id}, 'home', this)" aria-label="Palpite pênaltis ${sanitize(m.home)}">${sanitize(m.home.split(' ').pop())}</button>
+                    <button class="penaltis-btn ${awaySelP}" ${disabledP} onclick="setPalpitePenalti(${m.id}, 'away', this)" aria-label="Palpite pênaltis ${sanitize(m.away)}">${sanitize(m.away.split(' ').pop())}</button>
                 </div>`;
             }
 
             html += `
             <div class="match">
                 <div class="match-info">
-                    <span class="match-home">${m.home}</span>
+                    <span class="match-home">${sanitize(m.home)}</span>
                     <div class="match-score">
                         <input type="number" min="0" max="99" id="ph_${m.id}" value="${pH}" placeholder="-" ${lockAttr} aria-label="Palpite gols ${sanitize(m.home)}">
                         <span class="x" aria-hidden="true">✕</span>
                         <input type="number" min="0" max="99" id="pa_${m.id}" value="${pA}" placeholder="-" ${lockAttr} aria-label="Palpite gols ${sanitize(m.away)}">
                     </div>
-                    <span class="match-away">${m.away}</span>
+                    <span class="match-away">${sanitize(m.away)}</span>
                 </div>
                 <span class="match-date">${lockIcon}${timeLabel} ${getMatchLabel(m)}</span>
                 ${penPalpiteHtml}
@@ -1007,8 +1068,8 @@ function renderBracketMatch(m) {
     const penLabel = isPenaltis ? ' <span style="font-size:0.8em; color:var(--cor-erro);">(pen)</span>' : '';
 
     const kt = knockoutTeams[m.id] || knockoutTeams[String(m.id)];
-    const homeTeam = (kt && kt.home) || m.home;
-    const awayTeam = (kt && kt.away) || m.away;
+    const homeTeam = sanitize((kt && kt.home) || m.home);
+    const awayTeam = sanitize((kt && kt.away) || m.away);
 
     return `
     <div class="bracket-match ${matchClass}">
@@ -1053,9 +1114,9 @@ function editKnockoutTeams() {
             const saved = knockoutTeams[m.id] || {};
             html += `<div style="display:flex; gap:6px; margin-bottom:6px; align-items:center; flex-wrap:wrap;">
                 <span style="font-size:0.75em; color:#888; min-width:30px;">J${m.id}</span>
-                <input type="text" id="kt_h_${m.id}" value="${saved.home || ''}" placeholder="Time casa..." aria-label="Time da casa jogo ${m.id}" style="flex:1; min-width:100px; padding:6px; border:1px solid #555; border-radius:5px; background:#1e272e; color:#fff; font-size:0.85em;">
+                <input type="text" id="kt_h_${m.id}" value="${sanitize(saved.home || '')}" maxlength="30" placeholder="Time casa..." aria-label="Time da casa jogo ${m.id}" style="flex:1; min-width:100px; padding:6px; border:1px solid #555; border-radius:5px; background:#1e272e; color:#fff; font-size:0.85em;">
                 <span style="color:var(--cor-dourado);">✕</span>
-                <input type="text" id="kt_a_${m.id}" value="${saved.away || ''}" placeholder="Time fora..." aria-label="Time visitante jogo ${m.id}" style="flex:1; min-width:100px; padding:6px; border:1px solid #555; border-radius:5px; background:#1e272e; color:#fff; font-size:0.85em;">
+                <input type="text" id="kt_a_${m.id}" value="${sanitize(saved.away || '')}" maxlength="30" placeholder="Time fora..." aria-label="Time visitante jogo ${m.id}" style="flex:1; min-width:100px; padding:6px; border:1px solid #555; border-radius:5px; background:#1e272e; color:#fff; font-size:0.85em;">
             </div>`;
         });
     });
@@ -1076,8 +1137,8 @@ function saveKnockoutTeams() {
         const h = $(`kt_h_${m.id}`);
         const a = $(`kt_a_${m.id}`);
         if (h && a) {
-            const hv = h.value.trim();
-            const av = a.value.trim();
+            const hv = h.value.trim().slice(0, 30);
+            const av = a.value.trim().slice(0, 30);
             if (hv || av) data[m.id] = { home: hv || 'A definir', away: av || 'A definir' };
         }
     });

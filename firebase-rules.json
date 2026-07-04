@@ -2,19 +2,20 @@
   "rules": {
     "admin": {
       ".read": true,
-      ".write": true
+      ".write": "auth != null",
+      ".validate": "newData.isString() && newData.val().length <= 200"
     },
     "apostadores": {
       ".read": true,
       "$nome": {
-        ".write": true,
-        ".validate": "newData.isString() && newData.val().length <= 128"
+        ".write": "auth != null",
+        ".validate": "newData.isString() && newData.val().length <= 200"
       }
     },
     "palpites": {
       ".read": true,
       "$apostador": {
-        ".write": true,
+        ".write": "auth != null",
         "$matchId": {
           ".validate": "newData.hasChildren(['home', 'away']) && newData.child('home').isNumber() && newData.child('away').isNumber() && newData.child('home').val() >= 0 && newData.child('home').val() <= 99 && newData.child('away').val() >= 0 && newData.child('away').val() <= 99"
         }
@@ -22,35 +23,35 @@
     },
     "results": {
       ".read": true,
-      ".write": true,
+      ".write": "auth != null",
       "$matchId": {
         ".validate": "newData.hasChildren(['home', 'away']) && newData.child('home').isNumber() && newData.child('away').isNumber() && newData.child('home').val() >= 0 && newData.child('home').val() <= 99 && newData.child('away').val() >= 0 && newData.child('away').val() <= 99"
       }
     },
     "penaltis": {
       ".read": true,
-      ".write": true,
+      ".write": "auth != null",
       "$matchId": {
         ".validate": "newData.isString() && (newData.val() === 'home' || newData.val() === 'away')"
       }
     },
     "knockoutTeams": {
       ".read": true,
-      ".write": true,
+      ".write": "auth != null",
       "$matchId": {
-        ".validate": "newData.hasChildren(['home', 'away'])"
+        ".validate": "newData.hasChildren(['home', 'away']) && newData.child('home').isString() && newData.child('home').val().length <= 30 && newData.child('away').isString() && newData.child('away').val().length <= 30"
       }
     },
     "grupos": {
       ".read": true,
-      ".write": true,
+      ".write": "auth != null",
       "$grupo": {
         ".validate": "newData.isBoolean()"
       }
     },
     "apostadorGrupos": {
       ".read": true,
-      ".write": true,
+      ".write": "auth != null",
       "$apostador": {
         ".validate": "newData.isString() && newData.val().length <= 25"
       }
