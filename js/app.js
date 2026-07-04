@@ -167,6 +167,8 @@ let adminCallback = null;
 let knockoutTeams = {};
 let grupos = {};
 let apostadorGrupos = {};
+// Guarda quem avançou em caso de empate no tempo normal — cobre tanto prorrogação
+// quanto pênaltis (o app não distingue as duas, é só "quem passou de fase").
 let penaltis = {};
 let isAdminAuthenticated = false; // Flag de sessão admin
 
@@ -343,7 +345,7 @@ function renderMatches() {
                 const awaySelected = pen === 'away' ? 'selected' : '';
                 penaltisHtml = `
                 <div class="penaltis-row">
-                    <span>⚡ Pênaltis:</span>
+                    <span>⚡ Prorrogação/Pênaltis, quem avançou?</span>
                     <button class="penaltis-btn ${homeSelected}" onclick="setPenalti(${m.id}, 'home', this)" aria-label="Avançou ${sanitize(m.home)}">${sanitize(m.home.split(' ').pop())}</button>
                     <button class="penaltis-btn ${awaySelected}" onclick="setPenalti(${m.id}, 'away', this)" aria-label="Avançou ${sanitize(m.away)}">${sanitize(m.away.split(' ').pop())}</button>
                 </div>`;
@@ -395,7 +397,7 @@ function setPenalti(matchId, side, btnEl) {
         } else {
             firebase.database().ref('penaltis/' + matchId).remove();
         }
-        toast('Pênaltis atualizado!');
+        toast('Avanço na prorrogação/pênaltis atualizado!');
     });
 }
 
@@ -771,9 +773,9 @@ function renderPalpites(nome) {
                 const disabledP = locked ? 'disabled' : '';
                 penPalpiteHtml = `
                 <div class="penaltis-row" style="background:rgba(30,136,229,0.1); border-color:rgba(30,136,229,0.3);">
-                    <span style="color:var(--cor-azul);">⚡ Se pênaltis, quem avança?</span>
-                    <button class="penaltis-btn ${homeSelP}" ${disabledP} onclick="setPalpitePenalti(${m.id}, 'home', this)" aria-label="Palpite pênaltis ${sanitize(m.home)}">${sanitize(m.home.split(' ').pop())}</button>
-                    <button class="penaltis-btn ${awaySelP}" ${disabledP} onclick="setPalpitePenalti(${m.id}, 'away', this)" aria-label="Palpite pênaltis ${sanitize(m.away)}">${sanitize(m.away.split(' ').pop())}</button>
+                    <span style="color:var(--cor-azul);">⚡ Se prorrogação ou pênaltis, quem avança?</span>
+                    <button class="penaltis-btn ${homeSelP}" ${disabledP} onclick="setPalpitePenalti(${m.id}, 'home', this)" aria-label="Palpite prorrogação/pênaltis ${sanitize(m.home)}">${sanitize(m.home.split(' ').pop())}</button>
+                    <button class="penaltis-btn ${awaySelP}" ${disabledP} onclick="setPalpitePenalti(${m.id}, 'away', this)" aria-label="Palpite prorrogação/pênaltis ${sanitize(m.away)}">${sanitize(m.away.split(' ').pop())}</button>
                 </div>`;
             }
 
@@ -1030,7 +1032,7 @@ function showApostadorResumo(nome) {
             </div>
             <div style="flex:1; min-width:90px; text-align:center; background:rgba(255,255,255,0.05); border-radius:var(--radius-sm); padding:10px;">
                 <div style="font-size:1.1em; font-weight:700;">${det.exatos}🎯 ${det.vencedor}✓</div>
-                <div style="font-size:0.72em; color:var(--cor-texto-muted);">${det.parcial}½ acertos • ${det.penaltis}⚡ pênaltis</div>
+                <div style="font-size:0.72em; color:var(--cor-texto-muted);">${det.parcial}½ acertos • ${det.penaltis}⚡ prorrogação/pênaltis</div>
             </div>
         </div>
         <h4 style="color:var(--cor-dourado); font-size:0.9em; margin-bottom:8px;">Últimos jogos</h4>
